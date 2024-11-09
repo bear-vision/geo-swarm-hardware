@@ -1,1 +1,0 @@
-# geo-swarm-hardware
