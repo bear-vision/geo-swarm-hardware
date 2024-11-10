@@ -1,0 +1,3 @@
+int duration # in milli-seconds
+---
+bool success
