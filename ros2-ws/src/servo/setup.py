@@ -12,7 +12,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         # Explicitly include the single service file
-        (os.path.join('share', package_name, 'srv'), ['srv/ServoControl.srv']),
+        # (os.path.join('share', package_name, 'srv'), ['srv/ServoControl.srv']),
+        (os.path.join('share', package_name, 'share'), ['launch/servo_node.launch.py'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,

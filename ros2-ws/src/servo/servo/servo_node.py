@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from gpiozero import Servo
 from time import sleep
-from servo.srv import ServoControl  # Custom service
+from custom_srv_interfaces.srv import ServoControl  # Custom service
 
 class ServoServiceNode(Node):
     def __init__(self):
