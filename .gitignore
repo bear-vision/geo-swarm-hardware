@@ -1,0 +1,15 @@
+#colcon build artifacts
+ros2-ws/build/
+ros2-ws/install/
+ros2-ws/log/
+
+#Mac files
+.DS_Store
+**/.DS_Store
+
+#VS Code
+.vscode/*
+
+#Python cache files
+*.pyc
+__pycache__/
