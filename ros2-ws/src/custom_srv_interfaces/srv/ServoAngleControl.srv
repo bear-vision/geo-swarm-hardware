@@ -1,0 +1,3 @@
+float64 theta #the angle to actuate to. Should be within pre-defined bounds of servo motor
+---
+bool success
