@@ -8,6 +8,12 @@
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>ament_python</build_depend> <!-- Python build system -->
+  <build_depend>rclpy</build_depend>  <!-- For Python client/server support -->
+
+   <!-- Exec dependencies -->
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>rclpy</exec_depend>  <!-- For Python client/server support -->
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

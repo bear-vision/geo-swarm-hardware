@@ -10,8 +10,11 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(rclpy REQUIRED)  # For Python clients/servers
 
 find_package(rosidl_default_generators REQUIRED)
+#add dependencies that are used in rosidl_generate_interfaces below
+find_package(geometry_msgs REQUIRED) 
 
 # get all srv files
 set(SRVS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/srv")
@@ -19,7 +22,13 @@ file(GLOB CUSTOM_SRVS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${SRVS_DIR}/*.srv"
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${CUSTOM_SRVS}
-  # DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
+  DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for path planner msgs
+)
+
+# Install Python modules and generated interface files
+install(PROGRAMS
+  # Python executables can be added here, e.g., `scripts/my_python_node.py`
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

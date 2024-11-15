@@ -1,0 +1,4 @@
+geometry_msgs/Pose current_pose # current pose as ROS2 Pose object
+geometry_msgs/Pose target_pose # target pose as ROS2 Pose object
+---
+geometry_msgs/PoseArray waypoints # array of all waypoint which each is an individual ros2 Pose object

@@ -7,9 +7,9 @@ from scipy.interpolate import CubicSpline
 import numpy as np
 import math
 
-from custom_srv_interfaces.srv import PathPlanner_Paint  # Change this to your actual service type
-from custom_srv_interfaces.srv import PathPlanner_Up  # Change this to your actual service type
-from custom_srv_interfaces.srv import PathPlanner_Spin  # Change this to your actual service type
+from custom_srv_interfaces.srv import PathPlannerPaint  # Change this to your actual service type
+from custom_srv_interfaces.srv import PathPlannerUp  # Change this to your actual service type
+from custom_srv_interfaces.srv import PathPlannerSpin  # Change this to your actual service type
 
 class PathPlannerServiceNode(Node):
     def __init__(self):
@@ -17,13 +17,13 @@ class PathPlannerServiceNode(Node):
 
         # Define the service to plan a path based on start and target poses
         self.plan_path_service = self.create_service(
-            PathPlanner_Paint, 'plan_path_paint', self.generate_waypoints_towards_paint)
+            PathPlannerPaint, 'plan_path_paint', self.generate_waypoints_towards_paint)
         
         self.plan_path_service = self.create_service(
-            PathPlanner_Up, 'plan_path_up', self.generate_waypoints_spin_around_tower)
+            PathPlannerUp, 'plan_path_up', self.generate_waypoints_spin_around_tower)
         
         self.plan_path_service = self.create_service(
-            PathPlanner_Spin, 'plan_path_spin', self.generate_waypoints_spin_around_tower)
+            PathPlannerSpin, 'plan_path_spin', self.generate_waypoints_spin_around_tower)
 
     # def handle_plan_path_request(self, request, response):
     #     # Here we assume the service request provides start and target poses as arguments
