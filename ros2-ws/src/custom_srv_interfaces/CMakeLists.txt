@@ -13,8 +13,12 @@ find_package(ament_cmake REQUIRED)
 
 find_package(rosidl_default_generators REQUIRED)
 
+# get all srv files
+set(SRVS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/srv")
+file(GLOB CUSTOM_SRVS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${SRVS_DIR}/*.srv")
+
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/ServoControl.srv"
+  ${CUSTOM_SRVS}
   # DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 
