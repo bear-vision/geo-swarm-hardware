@@ -1,0 +1,4 @@
+Pose current_pose # current pose as ROS2 Pose object
+Pose target_pose # target pose as ROS2 Pose object
+---
+PoseArray waypoints # array of all waypoint which each is an individual ros2 Pose object
