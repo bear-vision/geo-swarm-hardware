@@ -21,8 +21,8 @@ class ServoServiceNode(Node):
         self.SPRAYER_MIN_ANGLE = -45
         self.SPRAYER_MAX_ANGLE = 45
 
-        self.servo = AngularServo(RPI_SERVO_PIN, min_angle=self.SPRAYER_MIN_ANGLE, max_angle=self.SPRAYER_MAX_ANGLE)
-        
+        self.servo = AngularServo(RPI_SERVO_PIN, min_angle=self.SPRAYER_MIN_ANGLE, max_angle=self.SPRAYER_MAX_ANGLE, initial_angle = self.SPRAYER_OFF_ANGLE)
+
         # Create the actuation with duration service
         self.servo_duration_srv = self.create_service(ServoDurationControl, 'servo_duration', self.actuate_servo_duration_callback)
         self.get_logger().info(f"Servo duration service started on pin {RPI_SERVO_PIN}.")
@@ -38,9 +38,12 @@ class ServoServiceNode(Node):
         self.servo_angle_srv = self.create_service(ServoAngleControl, 'servo_angle', self.actuate_servo_angle_callback)
         self.get_logger().info(f"Servo angle service started on pin {RPI_SERVO_PIN}.")
 
-        # Initial - no airspray actuation
-        self.servo.angle = self.SPRAYER_OFF_ANGLE
+        self.servo_off_srv = self.create_service(Trigger, 'servo_off', self.servo_off_callback)
+        self.get_logger().info(f"Servo off service started on pin {RPI_SERVO_PIN}.")
 
+        # Initial - no airspray actuation
+        self.get_logger().info(f"Servo Node up")
+        
     def actuate_servo_duration_callback(self, request, response):
         """Move servo to sprayer on angle (actuate airspray) for a requested duration"""
         try:
@@ -72,6 +75,11 @@ class ServoServiceNode(Node):
         try:
             self.get_logger().info(f"Going back to initial position...")
             self.servo.angle = self.SPRAYER_OFF_ANGLE
+            
+            #give the motor some time to move
+            sleep(0.1)
+            #turn off PWM to the servo so it locks at this angle
+            self.servo.angle = None
             response.success = True    
         except Exception as e:
             response.success = False
@@ -92,6 +100,15 @@ class ServoServiceNode(Node):
             response.success = False
         return response
 
+    def servo_off_callback(self, request, response):
+        """Kill the PWM signal to the servo."""
+        try:
+            #according to gpiozero docs, this should kill the pwm signal being sent to the servo
+            self.servo.angle = None
+            response.success = True
+        except Exception as e:
+            response.success = False
+        return response
 
 def main(args = None):
     # Initialize node
