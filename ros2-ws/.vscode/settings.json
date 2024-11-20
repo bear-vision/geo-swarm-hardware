@@ -1,0 +1,30 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/servo",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/servo/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/px4_ros_com/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/px4_msgs/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/perception",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/perception/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/path_planning",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/path_planning/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/custom_srv_interfaces/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Multi_Agent/ros2_ws/install/webots_ros2_epuck/lib/python3.8/site-packages",
+        "/home/jannik/ros2_ws/install/drone_path_planning/lib/python3.8/site-packages",
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/servo",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/servo/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/px4_ros_com/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/px4_msgs/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/perception",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/perception/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/build/path_planning",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/path_planning/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Robotics/geo-swarm-hardware/ros2-ws/install/custom_srv_interfaces/lib/python3.8/site-packages",
+        "/home/jannik/Documents/Multi_Agent/ros2_ws/install/webots_ros2_epuck/lib/python3.8/site-packages",
+        "/home/jannik/ros2_ws/install/drone_path_planning/lib/python3.8/site-packages",
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ]
+}
