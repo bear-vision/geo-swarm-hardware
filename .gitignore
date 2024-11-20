@@ -1,7 +1,7 @@
 #colcon build artifacts
-ros2-ws/build/
-ros2-ws/install/
-ros2-ws/log/
+**/build/
+**/install/
+**/log/
 
 #Mac files
 .DS_Store
