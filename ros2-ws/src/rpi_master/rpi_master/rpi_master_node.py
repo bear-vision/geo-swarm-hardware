@@ -24,14 +24,60 @@ class RPiMasterNode(Node):
         # following the example in https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp for now
         self.offboard_control_mode_publisher = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
         self.trajectory_setpoint_publisher = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', 10)
-        self.vehicle_command_publisher = self.create_publisher(VehicleCommand, 'fmu/in/vehicle_command', 10)
+        self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/fmu/in/vehicle_command', 10)
 
         #A boolean flag to control whether or not we should tell the Pi to be in offboard mode. Not sure if this is useful yet.
         self.offboard_control = True
 
+        self.offboard_setpoint_counter = 0
+
         # Create a timer to push offboard command mode messages if self.pi_command_mode is true every 0.5 seconds
         self.timer = self.create_timer(0.5, self.offboard_command_timer_callback)
+
+    def publish_vehicle_command(self, command_id, *args):
+        '''
+            Publishes a vehicle command to the Pixhawk.
+        '''
+        msg = VehicleCommand()
+
+        msg.command = command_id
+        msg.target_system = 1
+        msg.target_component = 1
+        msg.source_system = 1
+        msg.source_component = 1
+        msg.from_external = True
+        msg.timestamp = self.get_clock().now().nanoseconds() // 1000
+
+        # Populate msg params - see https://github.com/PX4/px4_msgs/blob/release/1.14/msg/VehicleCommand.msg#L165C1-L171C79
+        # Only need the first 7 args. if needed, pad args until length 7. default value for float types is 0 anyways.
+        msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7 = (args + (0,) * max(0, 7 - len(args)))[:7]
+
+        self.vehicle_command_publisher.publish(msg)
+
+    def arm(self):
+        '''
+            Arms the drone.
+
+            Python implementation of C++ Example at https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp
+
+        '''
+
+        # https://github.com/PX4/px4_msgs/blob/ffb6e80e1c17e5714395611a020c282a87af8fa4/msg/VehicleCommand.msg#L78C1-L78C99
+        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
+        self.get_logger().info("Arm command sent.")
     
+
+    def disarm(self):
+        '''
+            Disarms the drone.
+
+            Python implementation of C++ Example at https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp
+        '''
+
+        # https://github.com/PX4/px4_msgs/blob/ffb6e80e1c17e5714395611a020c282a87af8fa4/msg/VehicleCommand.msg#L78C1-L78C99
+        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0)
+        self.get_logger().info("Arm command sent.")
+
     def sprayer_on(self):
         while not self.sprayer_on_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Sprayer on service not available, waiting again...')
@@ -87,17 +133,32 @@ class RPiMasterNode(Node):
         msg = TrajectorySetpoint()
 
         #makes the drone hover at 1 meter in world coordinates (note: PX4 coordinate frame)
-        msg.position = [0, 0, -1]
+        msg.position = [0.0, 0.0, -1.0]
         msg.yaw = -3.14
 
         msg.timestamp = self.get_clock().now().nanoseconds // 1000
 
         self.trajectory_setpoint_publisher.publish(msg)
 
+
     def offboard_command_timer_callback(self):
-        if self.offboard_control:
-            self.publish_offboard_control_mode()
-            self.get_logger().debug('RPi Master published offboard command mode to Pixhawk.')
+        # if self.offboard_control:
+        #     self.publish_offboard_control_mode()
+        #     self.get_logger().debug('RPi Master published offboard command mode to Pixhawk.')
+    
+        if self.offboard_setpoint_counter == 10:
+
+            # apparently this does the actual switch to offboard mode.
+            self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1, 6)
+
+            self.arm()
+        
+        self.publish_offboard_control_mode()
+        self.publish_hover_message()
+
+        if self.offboard_setpoint_counter < 11:
+            self.offboard_setpoint_counter += 1
+
     
 
 
