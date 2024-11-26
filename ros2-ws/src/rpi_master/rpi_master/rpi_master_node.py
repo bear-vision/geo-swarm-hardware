@@ -2,7 +2,8 @@ import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
 from std_msgs.msg import Empty
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus
 #TODO: import some custom message or service type for servo control
 
 
@@ -12,27 +13,54 @@ class RPiMasterNode(Node):
         super().__init__('rpi_master_node')
         self.get_logger().info(f"Initialize RPi Master Node.")
 
+        # Configure QoS profile for publishing and subscribing
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
         #TODO: Set up Service Proxy for servo node
         self.sprayer_on_client = self.create_client(Trigger, 'sprayer_on')
         self.sprayer_off_client = self.create_client(Trigger, 'sprayer_off')
         
 
         #TODO: Set up Subscribers (or service!) for RPi to listen to laptop
-        self.create_subscription(Empty, 'temporary_rpi_topic', self.laptop_command_callback, 10)
+        # self.create_subscription(Empty, 'temporary_rpi_topic', self.laptop_command_callback, 10)
+
+        # Set up Subscribers for Pixhawk
+        self.vehicle_local_position_subscriber = self.create_subscription(VehicleLocalPosition, '/fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_profile)
+        self.vehicle_status_subscriber = self.create_subscription(VehicleStatus, '/fmu/out/vehicle_status', self.vehicle_status_callback, qos_profile)
 
         #TODO: Set up Publishers for Pixhawk
         # following the example in https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp for now
-        self.offboard_control_mode_publisher = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
-        self.trajectory_setpoint_publisher = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', 10)
-        self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/fmu/in/vehicle_command', 10)
+        self.offboard_control_mode_publisher = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
+        self.trajectory_setpoint_publisher = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', qos_profile)
+        self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/fmu/in/vehicle_command', qos_profile)
 
-        #A boolean flag to control whether or not we should tell the Pi to be in offboard mode. Not sure if this is useful yet.
-        self.offboard_control = True
-
-        self.offboard_setpoint_counter = 0
 
         # Create a timer to push offboard command mode messages if self.pi_command_mode is true every 0.5 seconds
         self.timer = self.create_timer(0.1, self.offboard_command_timer_callback)
+
+        # Other class fields
+        self.offboard_setpoint_counter = 0
+        self.vehicle_local_position = VehicleLocalPosition()
+        self.vehicle_status = VehicleStatus()
+
+        # temporary fields for hardware testing
+        self.reached_hover_pt = False
+        self.hover_pt_reach_start_time = -1
+        self.takeoff_height = -1.0 #1 meter above where the drone starts
+
+
+    def vehicle_local_position_callback(self, vehicle_local_position):
+        """Callback function for vehicle_local_position topic subscriber."""
+        self.vehicle_local_position = vehicle_local_position
+
+    def vehicle_status_callback(self, vehicle_status):
+        """Callback function for vehicle_status topic subscriber."""
+        self.vehicle_status = vehicle_status
 
     def publish_vehicle_command(self, command_id, *args):
         '''
@@ -100,7 +128,12 @@ class RPiMasterNode(Node):
         # add a callback upon completion - not sure if necessary
         # future.add_done_callback(self.callback)
 
-    # TODO: fill out when we have a better idea of how to implement
+    def land(self):
+        """Switch to land mode."""
+        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
+        self.get_logger().info("Switching to land mode")
+
+    # TODO: fill out when we have a better idea of how to implement 
     def laptop_command_callback(self, message):
         pass
 
@@ -147,18 +180,33 @@ class RPiMasterNode(Node):
         # if self.offboard_control:
         #     self.publish_offboard_control_mode()
         #     self.get_logger().debug('RPi Master published offboard command mode to Pixhawk.')
-        self.get_logger().info("RPi Master timer callback")
-
+        
         if self.offboard_setpoint_counter == 10:
             self.get_logger().info("RPi Master timer callback 10th call!")
 
-            # apparently this does the actual switch to offboard mode.
+            #send the command to switch to offboard mode
             self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
 
+            #arm
             self.arm()
         
+
         self.publish_offboard_control_mode()
-        self.publish_hover_message()
+
+        #either try to get to hover pt, or track how long we have 
+        if not self.reached_hover_pt:
+            self.publish_hover_message()
+
+            if self.vehicle_local_position.z <= -1.0:
+                self.reached_hover_pt = True 
+
+                #sets the start time in milliseconds
+                self.hover_pt_reach_start_time = self.get_clock().now().nanoseconds // 1_000_000
+        else:
+            if (self.get_clock().now().nanoseconds // 1_000_000) - self.hover_pt_reach_start_time > 3000:
+                # we have been hovering for 3 seconds - time to land
+                self.land()
+                exit(0) # TODO: verify if this is the behavior we want in the test            
 
        
         if self.offboard_setpoint_counter < 11:
