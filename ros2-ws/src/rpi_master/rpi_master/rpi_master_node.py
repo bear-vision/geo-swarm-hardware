@@ -32,7 +32,7 @@ class RPiMasterNode(Node):
         self.offboard_setpoint_counter = 0
 
         # Create a timer to push offboard command mode messages if self.pi_command_mode is true every 0.5 seconds
-        self.timer = self.create_timer(0.5, self.offboard_command_timer_callback)
+        self.timer = self.create_timer(0.1, self.offboard_command_timer_callback)
 
     def publish_vehicle_command(self, command_id, *args):
         '''
@@ -46,11 +46,13 @@ class RPiMasterNode(Node):
         msg.source_system = 1
         msg.source_component = 1
         msg.from_external = True
-        msg.timestamp = self.get_clock().now().nanoseconds() // 1000
+        msg.timestamp = self.get_clock().now().nanoseconds // 1000
 
         # Populate msg params - see https://github.com/PX4/px4_msgs/blob/release/1.14/msg/VehicleCommand.msg#L165C1-L171C79
         # Only need the first 7 args. if needed, pad args until length 7. default value for float types is 0 anyways.
-        msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7 = (args + (0,) * max(0, 7 - len(args)))[:7]
+        args = (args + (0.,) * max(0, 7 - len(args)))[:7]
+        self.get_logger().info(f"args: {args}")
+        msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7 = args
 
         self.vehicle_command_publisher.publish(msg)
 
@@ -145,17 +147,20 @@ class RPiMasterNode(Node):
         # if self.offboard_control:
         #     self.publish_offboard_control_mode()
         #     self.get_logger().debug('RPi Master published offboard command mode to Pixhawk.')
-    
+        self.get_logger().info("RPi Master timer callback")
+
         if self.offboard_setpoint_counter == 10:
+            self.get_logger().info("RPi Master timer callback 10th call!")
 
             # apparently this does the actual switch to offboard mode.
-            self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1, 6)
+            self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
 
             self.arm()
         
         self.publish_offboard_control_mode()
         self.publish_hover_message()
 
+       
         if self.offboard_setpoint_counter < 11:
             self.offboard_setpoint_counter += 1
 
