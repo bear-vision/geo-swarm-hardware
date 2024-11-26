@@ -22,10 +22,15 @@ class RPiMasterNode(Node):
 
         #TODO: Set up Publishers for Pixhawk
         # following the example in https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp for now
-        self.offboard_control_mode_publisher_ = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
+        self.offboard_control_mode_publisher = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
         self.trajectory_setpoint_publisher = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, 'fmu/in/vehicle_command', 10)
 
+        #A boolean flag to control whether or not we should tell the Pi to be in offboard mode. Not sure if this is useful yet.
+        self.offboard_control = True
+
+        # Create a timer to push offboard command mode messages if self.pi_command_mode is true every 0.5 seconds
+        self.timer = self.create_timer(0.5, self.offboard_command_timer_callback)
     
     def sprayer_on(self):
         while not self.sprayer_on_client.wait_for_service(timeout_sec=1.0):
@@ -50,6 +55,51 @@ class RPiMasterNode(Node):
     # TODO: fill out when we have a better idea of how to implement
     def laptop_command_callback(self, message):
         pass
+
+
+    # Publishes an offboard ctrl mode message to the pixhawk.
+    def publish_offboard_control_mode(self):
+        '''
+            PX4 needs to receive an offboard control message every second or so to enable offboard control on the flight controller.
+
+            This is the Python version of C++ example code in
+               https://docs.px4.io/main/en/ros2/offboard_control.html
+        '''
+        msg = OffboardControlMode()
+        msg.position = True
+        msg.velocity = False
+        msg.acceleration = False
+        msg.attitude = False
+        msg.body_rate = False
+        msg.actuator = False
+
+        msg.timestamp = self.get_clock().now().nanoseconds // 1000
+        self.offboard_control_mode_publisher.publish(msg)
+
+    def publish_hover_message(self):
+        '''
+            Publishes a trajectory setpoint to the pixhawk, telling it to hover at 1 meter above the ground if possible.
+        
+            This is the Python version of C++ example code in
+                https://docs.px4.io/main/en/ros2/offboard_control.html
+        '''        
+
+        msg = TrajectorySetpoint()
+
+        #makes the drone hover at 1 meter in world coordinates (note: PX4 coordinate frame)
+        msg.position = [0, 0, -1]
+        msg.yaw = -3.14
+
+        msg.timestamp = self.get_clock().now().nanoseconds // 1000
+
+        self.trajectory_setpoint_publisher.publish(msg)
+
+    def offboard_command_timer_callback(self):
+        if self.offboard_control:
+            self.publish_offboard_control_mode()
+            self.get_logger().debug('RPi Master published offboard command mode to Pixhawk.')
+    
+
 
 
 def main(args = None):
