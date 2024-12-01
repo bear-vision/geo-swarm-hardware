@@ -4,11 +4,14 @@ from custom_srv_interfaces.srv import PathPlannerSpin
 from geometry_msgs.msg import Pose, Quaternion
 import math
 
-class GetWaypointsToTower(py_trees.behaviour.Behaviour):
-    def __init__(self, name="Get waypoints to tower"):
+class GetWaypointsFromService(py_trees.behaviour.Behaviour):
+    def __init__(self, service_type, service_name, name="Get waypoints to tower"):
         super().__init__(name)
         self.waypoints = None
-        self.tower_waypoint_client = None
+        self.waypoint_client = None
+        self.future = None
+        self.service_name = service_name
+        self.service_type = service_type
         self.blackboard = self.attach_blackboard_client() # create blackboard client
         self.blackboard.register_key("position/x", access=py_trees.common.Access.READ)
         self.blackboard.register_key("position/y", access=py_trees.common.Access.READ)
@@ -19,7 +22,7 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
 
         
     def setup(self, **kwargs) -> None:
-        """Sets up PathPlannerSpin service.
+        """Sets up service.
         
         Args:
             **kwargs (dict): look for the 'node' object being passed down from the tree
@@ -36,14 +39,15 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
             raise KeyError(error_message) from e  # 'direct cause' traceability
         
         # Set up service client
-        self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
-        while not self.tower_waypoint_client.wait_for_service(timeout_sec=1.0):
+        # self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
+        self.waypoint_client = self.node.create_client(self.service_type, self.service_name)
+        while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for the plan_path_spin service...')
             
             
     def initialise(self) -> None:
-        """Create a service request."""
-        request = PathPlannerSpin.Request()
+        """Creates service request. This function is called on the first tick each time this node enters a RUNNING state"""
+        request = self.service_type.Request()
         # Retrieve current pose from blackboard (ENU TO NED)
         if (self.blackboard.valid.xy_valid and self.blackboard.valid.z_valid):
             request.current_pose.position.x = self.blackboard.position.y
@@ -51,7 +55,7 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
             request.current_pose.position.z = -self.blackboard.position.z
             request.current_pose.orientation = yaw_to_quaternion(self.blackboard.orientation.yaw)
         else:
-            self.logger.error("GetWayPointsToTower: invalid drone x,y,z current pose")
+            self.logger.error("Invalid drone x,y,z current pose. Is 'fmu/out/vehicle_local_positoin' topic available?")
             return Status.FAILURE
         # TODO: retrieve tower pose from blackboard, using dummy for now
         goal_pose = Pose()
@@ -61,17 +65,22 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
         goal_pose.orientation.w = 0.0
         
         # Request waypoints from service and save in blackboard for other behaviors to use
-        self.future = self.tower_waypoint_client.call_async(request)
-        self.logger.info(f'called service with current position:')
+        self.future = self.waypoint_client.call_async(request)
     
     
     def update(self) -> Status:
         """Check if service request was completed and retrieves the waypoints
 
         Returns:
-            Status: FAILURE if invalid x,y,z drone pose, or service call fails. SUCCESS if waypoints retrieved.
+            Status.FAILURE if invalid x,y,z drone pose, or service call fails, or there is no service client yet 
+            Status.SUCCESS if waypoints retrieved successfully
+            Status.RUNNING if we are waiting for service response
         """
         self.logger.debug("{}.update()".format(self.qualified_name))
+        
+        if self.future is None:
+            self.logger.error("No service client set yet")
+            return Status.FAILURE
         
         if not self.future.done():
             print("not done yet")
@@ -80,11 +89,11 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
         try:
             response = self.future.result()
             self.waypoints = response.waypoints
-            self.logger.info(f'GetWayPointsToTower: retrieved waypoints:')
+            self.logger.info(f'retrieved waypoints:')
             print(self.waypoints)
             return Status.SUCCESS
         except Exception as e:
-            self.logger.error(f'GetWayPointsToTower: Service call failed: {str(e)}')
+            self.logger.error(f'Service call failed: {str(e)}')
             return Status.FAILURE
         
     def get_waypoints(self):
