@@ -6,7 +6,7 @@ import rclpy
 from rclpy.node import Node
 from time import sleep
 from px4_msgs.msg import VehicleLocalPosition
-from custom_srv_interfaces.msg import PerceptionStuff
+from custom_interfaces.msg import PerceptionStuff
 
 
 class PositionPubNode(Node):
