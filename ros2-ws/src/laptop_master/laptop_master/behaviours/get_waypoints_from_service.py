@@ -78,18 +78,16 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         self.logger.debug("{}.update()".format(self.qualified_name))
         
         if self.future is None:
-            self.logger.error("No service client set yet")
+            self.logger.error("No path planner service client set yet")
             return Status.FAILURE
         
         if not self.future.done():
-            print("not done yet")
             return Status.RUNNING
         
         try:
             response = self.future.result()
             self.waypoints = response.waypoints
             self.logger.info(f'retrieved waypoints:')
-            print(self.waypoints)
             return Status.SUCCESS
         except Exception as e:
             self.logger.error(f'Service call failed: {str(e)}')
