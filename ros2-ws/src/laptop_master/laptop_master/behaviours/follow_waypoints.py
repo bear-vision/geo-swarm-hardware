@@ -1,7 +1,9 @@
+'''NOT TESTED'''
+
 import py_trees
 from py_trees.common import Status
 from geometry_msgs.msg import Pose
-from custom_action_interfaces.action import GoToWaypoint
+from custom_srv_interfaces.action import DroneNavigateToWaypoint
 from rclpy.action import ActionClient
 import math
 
@@ -13,7 +15,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.action_client = None
         
     def setup(self, **kwargs) -> None:
-        """Sets up the GoToWaypoints ROS action client.
+        """Sets up the DroneNavigateToWaypoint ROS action client.
         
         Args:
             **kwargs (dict): look for the 'node' object being passed down from the tree
@@ -29,7 +31,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             error_message = "didn't find 'node' in setup's kwargs [{}][{}]".format(self.qualified_name)
             raise KeyError(error_message) from e  # 'direct cause' traceability
         
-        self.action_client = ActionClient(self.node, GoToWaypoint, 'go_to_waypoint') # TODO: @Calix
+        self.action_client = ActionClient(self.node, DroneNavigateToWaypoint, 'go_to_waypoint') # TODO: @Calix
         
     def initialise(self):
         self.current_waypoint_index = 0 
@@ -64,13 +66,11 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
     
     def send_waypoint_to_action_client(self) -> None:
         # Retrieve current waypoint
-        goal_msg = GoToWaypoint.Goal()
+        goal_msg = DroneNavigateToWaypoint.Goal()
         goal_msg.waypoint = Pose()
         goal_msg.waypoint = self.waypoints[self.current_waypoint_index]
         # Send waypoint to rpi master node action client
-        self.logger.info(f"Sending goal for waypoint #{self.current_waypoint_index}: 
-                         ({goal_msg.waypoint.position.x}, {goal_msg.waypoint.position.y}, {goal_msg.waypoint.position.z}), 
-                         yaw ({quaternion_to_yaw(goal_msg.waypoint.orientation)})")
+        self.logger.info(f"Sending goal for waypoint #{self.current_waypoint_index}: ({goal_msg.waypoint.position.x}, {goal_msg.waypoint.position.y}, {goal_msg.waypoint.position.z}), yaw ({quaternion_to_yaw(goal_msg.waypoint.orientation)})")
         self.goal_handle = self.action_client.send_goal_async(goal_msg)
         self.goal_handle.add_done_callback(self.goal_response_callback)
 

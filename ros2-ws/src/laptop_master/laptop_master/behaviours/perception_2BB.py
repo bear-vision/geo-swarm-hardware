@@ -2,7 +2,7 @@ import py_trees
 import py_trees_ros
 from custom_srv_interfaces.msg import PerceptionStuff
 
-def PerceptionToBlackboard():
+def perception_to_blackboard():
     """Creates a blackboard to view ENTIRE PerceptionStuff message. 
        ROS subscribers are asynchronous, while py-trees are synchronous. This means 
        that sometimes there will be no messages on a tick, or there will be new messages

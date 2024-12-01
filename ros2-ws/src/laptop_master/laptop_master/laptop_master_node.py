@@ -22,28 +22,28 @@ from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
 from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
-from laptop_master.behaviours.dummy_blackboard_reader import *
-from laptop_master.behaviours.get_waypoints_from_service import *
+from laptop_master.behaviours.perception_2BB import *
+from laptop_master.behaviours.get_waypoints_from_service import GetWaypointsFromService
 import sys
  
         
 def create_root() -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Parallel(
-        name="Test Service",
+        name="Test",
         policy=py_trees.common.ParallelPolicy.SuccessOnAll(
             synchronise=False
         )
     )
 
-    topics2bb = py_trees.composites.Sequence(name="Topics2BB", memory=True)
-    
-    # This will save the entire message
+    gather_data = py_trees.composites.Sequence(name="Gather Data", memory=True)
     localPosition2BB =  vehicle_local_position_to_blackboard()
-    dummy_blackboard_reader = DummyBlackboardReader()
+    perception2BB = perception_to_blackboard()
+    gather_data.add_children([localPosition2BB, perception2BB])
+    
+    navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
+    get_waypoints_to_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin')
 
     
-    # the service checks for radius away from tower, returns a linear path if too far, otherwise returns a circular path
-    get_waypoints_to_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin')
     get_waypoints_around_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin') 
     
     get_waypoints_to_paint = GetWaypointsFromService(service_type=PathPlannerPaint, service_name='plan_path_paint')
@@ -53,8 +53,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     idle = py_trees.behaviours.Running(name="Idle")
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
-    root.add_children([topics2bb, tasks])
-    topics2bb.add_child(localPosition2BB)
+    root.add_children([gather_data, tasks])
     tasks.add_children([get_waypoints_to_tower, idle])
 
     return root
