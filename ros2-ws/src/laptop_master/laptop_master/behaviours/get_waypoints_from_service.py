@@ -22,7 +22,8 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("drone/orientation/yaw", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/valid/xy_valid", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/valid/z_valid", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("tower_position", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("tower/position", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("tower/orientation", access=py_trees.common.Access.READ)
         self.blackboard.register_key(self.blackboard_waypoint_key, access=py_trees.common.Access.WRITE)
         
         
@@ -54,35 +55,32 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         """Creates service request. This function is called on the first tick each time this node enters a RUNNING state"""
         request = self.service_type.Request()
         
-        # Retrieve current pose from blackboard (ENU TO NED)
-        if (self.blackboard.drone.valid.xy_valid and self.blackboard.drone.valid.z_valid):
-            request.current_pose.position.x = self.blackboard.drone.position.y
-            request.current_pose.position.y = self.blackboard.drone.position.x
-            request.current_pose.position.z = -self.blackboard.drone.position.z
-            request.current_pose.orientation = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
-        else:
-            self.logger.error("Invalid drone x,y,z current pose. Is 'fmu/out/vehicle_local_positoin' topic available?")
-                
+        try:
+            # Retrieve current pose from blackboard (ENU TO NED)
+            if (self.blackboard.drone.valid.xy_valid and self.blackboard.drone.valid.z_valid):
+                request.current_pose.position.x = self.blackboard.drone.position.y
+                request.current_pose.position.y = self.blackboard.drone.position.x
+                request.current_pose.position.z = -self.blackboard.drone.position.z
+                request.current_pose.orientation = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
+            else:
+                self.logger.error("Invalid drone x,y,z current pose.")
+        except KeyError as e:
+            self.logger.error(f"No local position found. Is vehicle local position topic available? {str(e)}")
+        
         try:
             # Retrieve tower pose from blackboard (in NED)
             goal_pose = Pose()
-            tower = self.blackboard.tower_position
-            goal_pose.position.x = tower.position.x
-            goal_pose.position.y = tower.position.y
-            goal_pose.position.z = tower.position.z
-            goal_pose.orientation.x = tower.orientation.x
-            goal_pose.orientation.x = tower.orientation.y
-            goal_pose.orientation.x = tower.orientation.z
-            goal_pose.orientation.x = tower.orientation.w
-            request.goal_pose = goal_pose
-            
-            # Request waypoints from service and save in blackboard for other behaviors to use
-            self.future = self.waypoint_client.call_async(request)
-            self.logger.info(f"Requested path planning service for {self.service_name}")
-            
+            goal_pose.position = self.blackboard.tower.position
+            goal_pose.orientation = self.blackboard.tower.orientation
+            request.tower_pose = goal_pose        
         except KeyError as e:
-            self.logger.error("No tower pose found. Is perception topic available?")
+            self.logger.error(f"No tower pose found. Is perception topic available? {str(e)}")
+        except Exception as err:
+            self.logger.error(f"More errors with perception blackboard... {str(err)}")
         
+        # Request waypoints from service and save in blackboard for other behaviors to use
+        self.future = self.waypoint_client.call_async(request)
+        self.logger.info(f"Requested path planning service for {self.service_name}")
        
     
     
