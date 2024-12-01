@@ -63,10 +63,11 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             return Status.FAILURE
     
     def send_waypoint_to_action_client(self) -> None:
+        # Retrieve current waypoint
         goal_msg = GoToWaypoint.Goal()
         goal_msg.waypoint = Pose()
         goal_msg.waypoint = self.waypoints[self.current_waypoint_index]
-        
+        # Send waypoint to rpi master node action client
         self.logger.info(f"Sending goal for waypoint #{self.current_waypoint_index}: 
                          ({goal_msg.waypoint.position.x}, {goal_msg.waypoint.position.y}, {goal_msg.waypoint.position.z}), 
                          yaw ({quaternion_to_yaw(goal_msg.waypoint.orientation)})")
@@ -80,6 +81,12 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             self.goal_handle = None
             
     def terminate(self, new_status) -> None:
+        """This is called whenever your node switches to a non running state (SUCCESS, FAILURE, or INVALID)
+
+        Args:
+            new_status: stateus we terminate  the node with 
+        """
+        self.logger.info(f"Terminating with new status: {new_status}")
         if self.goal_handle and self.goal_handle.is_active():
             self.logger.info("Cancelling current goal")
             self.goal_handle.cancel_goal_async()
