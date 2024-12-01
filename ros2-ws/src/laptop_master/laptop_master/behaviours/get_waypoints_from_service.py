@@ -4,13 +4,15 @@ from geometry_msgs.msg import Pose, Quaternion
 import math
 
 class GetWaypointsFromService(py_trees.behaviour.Behaviour):
-    def __init__(self, behaviour_name, service_type, service_name):
+    def __init__(self, behaviour_name, service_type, service_name, blackboard_waypoint_key):
         super().__init__(behaviour_name)
         self.waypoints = None
         self.waypoint_client = None
         self.future = None
         self.service_name = service_name
         self.service_type = service_type
+        self.blackboard_waypoint_key = f"waypoints/{blackboard_waypoint_key}"
+        
         self.blackboard = self.attach_blackboard_client() # create blackboard client
         self.blackboard.register_key("position/x", access=py_trees.common.Access.READ)
         self.blackboard.register_key("position/y", access=py_trees.common.Access.READ)
@@ -18,7 +20,8 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("orientation/yaw", access=py_trees.common.Access.READ)
         self.blackboard.register_key("valid/xy_valid", access=py_trees.common.Access.READ)
         self.blackboard.register_key("valid/z_valid", access=py_trees.common.Access.READ)
-
+        self.blackboard.register_key(self.blackboard_waypoint_key, access=py_trees.common.Access.WRITE)
+        
         
     def setup(self, **kwargs) -> None:
         """Sets up service.
@@ -41,7 +44,7 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         # self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
         self.waypoint_client = self.node.create_client(self.service_type, self.service_name)
         while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for the path planning service...')
+            self.logger.info('Waiting for the path planning service...')
             
             
     def initialise(self) -> None:
@@ -87,14 +90,15 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         try:
             response = self.future.result()
             self.waypoints = response.waypoints
-            self.logger.info(f'retrieved waypoints:')
+            setattr(self.blackboard, self.blackboard_waypoint_key, self.waypoints) # this is self.blackboard.waypoints.to_tower = self.waypoints
+            self.logger.info(f"Waypoints stored in blackboard key: {self.blackboard_waypoint_key}")
             return Status.SUCCESS
         except Exception as e:
             self.logger.error(f'Service call failed: {str(e)}')
             return Status.FAILURE
         
-    def get_waypoints(self):
-        return self.waypoints
+    # def get_waypoints(self):
+    #     return self.waypoints
 
         
 # TODO: maybe put these in a common library

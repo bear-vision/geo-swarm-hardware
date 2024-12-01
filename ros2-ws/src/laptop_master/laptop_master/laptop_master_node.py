@@ -19,7 +19,7 @@ import rclpy
 import py_trees
 import py_trees_ros
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition
-from std_msgs.msg import Trigger
+from std_srvs.srv import Trigger
 from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
@@ -43,12 +43,32 @@ def create_root() -> py_trees.behaviour.Behaviour:
     gather_data.add_children([localPosition2BB, perception2BB])
     
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
-    get_waypoints_to_tower = GetWaypointsFromService(behaviour_name="Get Waypoints To Tower", service_type=PathPlannerSpin, service_name='plan_path_spin')
+    get_waypoints_to_tower = GetWaypointsFromService(
+        behaviour_name="Get Waypoints To Tower", 
+        service_type=PathPlannerSpin, 
+        service_name='plan_path_spin',
+        blackboard_waypoint_key="to_tower"
+    )
 
-    get_waypoints_around_tower = GetWaypointsFromService(behaviour_name="Get Waypoints Around Tower", service_type=PathPlannerSpin, service_name='plan_path_spin') 
+    get_waypoints_around_tower = GetWaypointsFromService(
+        behaviour_name="Get Waypoints Around Tower", 
+        service_type=PathPlannerSpin, 
+        service_name='plan_path_spin',
+        blackboard_waypoint_key="around_tower"
+    ) 
     
-    get_waypoints_to_paint = GetWaypointsFromService(behaviour_name="Get Waypoints To Paint", service_type=PathPlannerPaint, service_name='plan_path_paint')
-    get_waypoints_up = GetWaypointsFromService(behaviour_name="Get Waypoints Up", service_type=PathPlannerUp, service_name='plan_path_up')
+    get_waypoints_to_paint = GetWaypointsFromService(
+        behaviour_name="Get Waypoints To Paint", 
+        service_type=PathPlannerPaint, 
+        service_name='plan_path_paint',
+        blackboard_waypoint_key="to_paint"
+    )
+    get_waypoints_up = GetWaypointsFromService(
+        behaviour_name="Get Waypoints Up", 
+        service_type=PathPlannerUp, 
+        service_name='plan_path_up',
+        blackboard_waypoint_key="up"
+    )
 
 
     actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')

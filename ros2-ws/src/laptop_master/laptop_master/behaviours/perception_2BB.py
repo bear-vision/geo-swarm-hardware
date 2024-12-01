@@ -17,7 +17,7 @@ def perception_to_blackboard():
         py_trees_ros.subscribers.ToBlackboard: the blackboard behaviour containing the latest PerceptionStuff message
     """
     perception2BB =  py_trees_ros.subscribers.ToBlackboard(
-        name="LocalPositionToBlackboard",
+        name="PerceptionToBlackboard",
         topic_name="realsense/out/perception_stuff",
         topic_type=PerceptionStuff,
         clearing_policy=py_trees.common.ClearingPolicy.NEVER,
