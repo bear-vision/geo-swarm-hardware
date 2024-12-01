@@ -54,8 +54,8 @@ class RPiMasterNode(Node):
             self.get_logger().info("Sprayer off client set up.")
 
         # Set up sprayer services that rpi can control
-        self.sprayer_off_srv = self.create_service(Trigger, '/rpi_master/rpi_sprayer_off', self.rpi_sprayer_on_callback)
-        self.sprayer_on_srv = self.create_service(Trigger, '/rpi_master/rpi_sprayer_on', self.rpi_sprayer_off_callback)
+        self.sprayer_off_srv = self.create_service(Trigger, '/rpi_master/rpi_sprayer_off', self.rpi_sprayer_off_callback)
+        self.sprayer_on_srv = self.create_service(Trigger, '/rpi_master/rpi_sprayer_on', self.rpi_sprayer_on_callback)
 
         # Class fields 
         self.offboard_setpoint_counter = 0
