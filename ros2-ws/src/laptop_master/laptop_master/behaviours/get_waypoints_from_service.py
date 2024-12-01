@@ -1,6 +1,5 @@
 import py_trees
 from py_trees.common import Status
-from custom_srv_interfaces.srv import PathPlannerSpin
 from geometry_msgs.msg import Pose, Quaternion
 import math
 
