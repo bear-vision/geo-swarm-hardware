@@ -8,11 +8,15 @@ from rclpy.action import ActionClient
 import math
 
 class FollowWaypoints(py_trees.behaviour.Behaviour):
-    def __init__(self, waypoints, name="Follow waypoints"):
-        super().__init__(name)
-        self.waypoints = waypoints
+    def __init__(self, behaviour_name, blackboard_waypoint_key):
+        super().__init__(behaviour_name)
+        self.waypoints = None
         self.waypoint_index = 0
         self.action_client = None
+        self.bb_waypoints_key = blackboard_waypoint_key
+        self.blackboard = self.attach_blackboard_client() 
+        self.blackboard.register_key(self.bb_waypoints_key, access=py_trees.common.Access.READ)
+
         
     def setup(self, **kwargs) -> None:
         """Sets up the DroneNavigateToWaypoint ROS action client.
@@ -38,12 +42,21 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.goal_handle = None
         
     def update(self) -> Status:
+        """Retrieve waypoints from blackboard and calls a ROS Action to nagivate to one waypoint at a time.
+
+        Returns:
+            Status.FAILURE we failed to reach a waypoint
+            Status.SUCCESS if all waypoints were reached
+            Status.RUNNING still traversing thru given waypoints
+        """
         if self.waypoints is None:
-            self.logger.info("No waypoints available")
-            return Status.FAILURE
+            self.logger.info("Retrieved waypoints from blackboard")
+            self.waypoints = self.blackboard.waypoints.to_tower.poses
+            return Status.RUNNING
         
         if self.waypoint_index >= len(self.waypoints):
             self.logger.info("All waypoints reached")
+            return Status.SUCCESS
             
         # send one waypoint
         if not self.goal_handle:

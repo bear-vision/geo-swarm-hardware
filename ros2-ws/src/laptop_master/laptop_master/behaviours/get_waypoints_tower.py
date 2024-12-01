@@ -1,10 +1,9 @@
-"""NOT TESTED"""
 import py_trees
 from py_trees.common import Status
 from geometry_msgs.msg import Pose, Quaternion
 import math
 
-class GetWaypointsFromService(py_trees.behaviour.Behaviour):
+class GetWaypointsTower(py_trees.behaviour.Behaviour):
     def __init__(self, behaviour_name, service_type, service_name, blackboard_waypoint_key):
         super().__init__(behaviour_name)
         self.waypoints = None
@@ -12,7 +11,7 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         self.future = None
         self.service_name = service_name
         self.service_type = service_type
-        self.blackboard_waypoint_key = f"waypoints/{blackboard_waypoint_key}"
+        self.blackboard_waypoint_key = blackboard_waypoint_key
         
         # read blackboard for current drone position and tower position
         self.blackboard = self.attach_blackboard_client() 
