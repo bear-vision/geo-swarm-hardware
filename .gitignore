@@ -8,7 +8,7 @@
 **/.DS_Store
 
 #VS Code
-.vscode/*
+**/.vscode/
 
 #Python cache files
 *.pyc
