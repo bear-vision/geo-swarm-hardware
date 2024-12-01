@@ -65,6 +65,8 @@ class RPiMasterNode(Node):
         self.flight_state = DroneFlightState.GROUNDED
 
         self.current_goal = None # Example implementations use goal queues. We only need 1 goal at a time
+        
+        #geometry_msgs/Pose objs
         self.latest_waypoint = None
         self.prev_waypoint = None
 
@@ -368,7 +370,10 @@ class RPiMasterNode(Node):
             self.get_logger().warn("Tried to call publish_latest_waypoint without a valid latest waypoint. This call will do nothing.")
             return
 
-        msg = self.latest_waypoint
+        waypoint_pose = self.latest_waypoint
+        msg = TrajectorySetpoint()
+        msg.x, msg.y, msg.z = waypoint_pose.position.x, waypoint_pose.position.y, waypoint_pose.position.z
+        msg.yaw = rpi_master_utils.euler_from_quaternion(msg.orientation)[2]
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.trajectory_setpoint_publisher.publish(msg)
 
