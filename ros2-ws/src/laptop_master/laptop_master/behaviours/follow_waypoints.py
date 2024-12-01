@@ -3,7 +3,7 @@
 import py_trees
 from py_trees.common import Status
 from geometry_msgs.msg import Pose
-from custom_srv_interfaces.action import DroneNavigateToWaypoint
+from custom_interfaces.action import DroneNavigateToWaypoint
 from rclpy.action import ActionClient
 import math
 

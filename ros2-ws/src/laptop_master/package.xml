@@ -12,7 +12,7 @@
   <depend>py_trees</depend>
   <depend>py_trees_ros</depend>
   <depend>px4_msgs</depend>
-  <depend>custom_srv_interfaces</depend>
+  <depend>custom_interfaces</depend>
   <depend>behaviours</depend>
 
   <!-- Custom service dependencies -->

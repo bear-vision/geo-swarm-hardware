@@ -2,7 +2,7 @@
 
 import py_trees
 import py_trees_ros
-from custom_srv_interfaces.msg import PerceptionStuff
+from custom_interfaces.msg import PerceptionStuff
 
 def perception_to_blackboard():
     """Creates a blackboard to view some PerceptionStuff. 

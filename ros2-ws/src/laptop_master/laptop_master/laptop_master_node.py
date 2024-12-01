@@ -20,7 +20,7 @@ import py_trees
 import py_trees_ros
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition
 from std_srvs.srv import Trigger
-from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
