@@ -29,14 +29,14 @@ def vehicle_local_position_to_blackboard():
             'drone/valid/xy_valid': 'xy_valid',
             'drone/valid/z_valid': 'z_valid'
         },
-        initialise_variables={ # dummy defaults to ensure we can run the tree without complaining about missing blackboard args
-            'drone/position/x': 0.0,
-            'drone/position/y': 0.0,
-            'drone/position/z': 0.0,
-            'drone/orientation/yaw': 0.0,
-            'drone/valid/xy_valid': False,
-            'drone/valid/z_valid': False
-        },
+        # initialise_variables={ # dummy defaults to ensure we can run the tree without complaining about missing blackboard args
+        #     'drone/position/x': 0.0,
+        #     'drone/position/y': 0.0,
+        #     'drone/position/z': 0.0,
+        #     'drone/orientation/yaw': 0.0,
+        #     'drone/valid/xy_valid': False,
+        #     'drone/valid/z_valid': False
+        # },
         clearing_policy=py_trees.common.ClearingPolicy.NEVER,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched() # we care about most recent data, no need to ensure all messages were delivered
     )

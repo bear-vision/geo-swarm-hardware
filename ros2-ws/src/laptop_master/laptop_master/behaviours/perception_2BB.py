@@ -20,6 +20,11 @@ def perception_to_blackboard():
         name="PerceptionToBlackboard",
         topic_name="realsense/out/perception_stuff",
         topic_type=PerceptionStuff,
+        blackboard_variables={
+            'tower/found' : 'detected_tower',
+            'tower/position' : 'tower_position.position',
+            'tower/orientation' : 'tower_position.orientation'
+        },
         clearing_policy=py_trees.common.ClearingPolicy.NEVER,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched() # we care about most recent data, no need to ensure all messages were delivered
     )
