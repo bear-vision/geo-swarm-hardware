@@ -1,3 +1,4 @@
+"""NOT TESTED"""
 import py_trees
 from py_trees.common import Status
 from geometry_msgs.msg import Pose, Quaternion
@@ -13,13 +14,15 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         self.service_type = service_type
         self.blackboard_waypoint_key = f"waypoints/{blackboard_waypoint_key}"
         
-        self.blackboard = self.attach_blackboard_client() # create blackboard client
-        self.blackboard.register_key("position/x", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("position/y", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("position/z", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("orientation/yaw", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("valid/xy_valid", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("valid/z_valid", access=py_trees.common.Access.READ)
+        # read blackboard for current drone position and tower position
+        self.blackboard = self.attach_blackboard_client() 
+        self.blackboard.register_key("drone/position/x", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("drone/position/y", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("drone/position/z", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("drone/orientation/yaw", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("drone/valid/xy_valid", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("drone/valid/z_valid", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("tower_position", access=py_trees.common.Access.READ)
         self.blackboard.register_key(self.blackboard_waypoint_key, access=py_trees.common.Access.WRITE)
         
         
@@ -50,24 +53,37 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
     def initialise(self) -> None:
         """Creates service request. This function is called on the first tick each time this node enters a RUNNING state"""
         request = self.service_type.Request()
+        
         # Retrieve current pose from blackboard (ENU TO NED)
-        if (self.blackboard.valid.xy_valid and self.blackboard.valid.z_valid):
-            request.current_pose.position.x = self.blackboard.position.y
-            request.current_pose.position.y = self.blackboard.position.x
-            request.current_pose.position.z = -self.blackboard.position.z
-            request.current_pose.orientation = yaw_to_quaternion(self.blackboard.orientation.yaw)
+        if (self.blackboard.drone.valid.xy_valid and self.blackboard.drone.valid.z_valid):
+            request.current_pose.position.x = self.blackboard.drone.position.y
+            request.current_pose.position.y = self.blackboard.drone.position.x
+            request.current_pose.position.z = -self.blackboard.drone.position.z
+            request.current_pose.orientation = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
         else:
             self.logger.error("Invalid drone x,y,z current pose. Is 'fmu/out/vehicle_local_positoin' topic available?")
-            return Status.FAILURE
-        # TODO: retrieve tower pose from blackboard, using dummy for now
-        goal_pose = Pose()
-        goal_pose.position.x = 2.0  
-        goal_pose.position.y = 3.0
-        goal_pose.position.z = 0.0
-        goal_pose.orientation.w = 0.0
+                
+        try:
+            # Retrieve tower pose from blackboard (in NED)
+            goal_pose = Pose()
+            tower = self.blackboard.tower_position
+            goal_pose.position.x = tower.position.x
+            goal_pose.position.y = tower.position.y
+            goal_pose.position.z = tower.position.z
+            goal_pose.orientation.x = tower.orientation.x
+            goal_pose.orientation.x = tower.orientation.y
+            goal_pose.orientation.x = tower.orientation.z
+            goal_pose.orientation.x = tower.orientation.w
+            request.goal_pose = goal_pose
+            
+            # Request waypoints from service and save in blackboard for other behaviors to use
+            self.future = self.waypoint_client.call_async(request)
+            self.logger.info(f"Requested path planning service for {self.service_name}")
+            
+        except KeyError as e:
+            self.logger.error("No tower pose found. Is perception topic available?")
         
-        # Request waypoints from service and save in blackboard for other behaviors to use
-        self.future = self.waypoint_client.call_async(request)
+       
     
     
     def update(self) -> Status:

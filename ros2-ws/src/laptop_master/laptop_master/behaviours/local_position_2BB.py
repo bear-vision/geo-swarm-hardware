@@ -22,20 +22,20 @@ def vehicle_local_position_to_blackboard():
         topic_name="/fmu/out/vehicle_local_position",
         topic_type=VehicleLocalPosition,
         blackboard_variables={
-            'position/x': 'x',
-            'position/y': 'y',
-            'position/z': 'z',
-            'orientation/yaw': 'heading',
-            'valid/xy_valid': 'xy_valid',
-            'valid/z_valid': 'z_valid'
+            'drone/position/x': 'x',
+            'drone/position/y': 'y',
+            'drone/position/z': 'z',
+            'drone/orientation/yaw': 'heading',
+            'drone/valid/xy_valid': 'xy_valid',
+            'drone/valid/z_valid': 'z_valid'
         },
         initialise_variables={ # dummy defaults to ensure we can run the tree without complaining about missing blackboard args
-            'position/x': 0.0,
-            'position/y': 0.0,
-            'position/z': 0.0,
-            'orientation/yaw': 0.0,
-            'valid/xy_valid': False,
-            'valid/z_valid': False
+            'drone/position/x': 0.0,
+            'drone/position/y': 0.0,
+            'drone/position/z': 0.0,
+            'drone/orientation/yaw': 0.0,
+            'drone/valid/xy_valid': False,
+            'drone/valid/z_valid': False
         },
         clearing_policy=py_trees.common.ClearingPolicy.NEVER,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched() # we care about most recent data, no need to ensure all messages were delivered

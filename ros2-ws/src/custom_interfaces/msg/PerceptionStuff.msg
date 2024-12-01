@@ -1,4 +1,5 @@
 # Location of the tower (we should only care about x, y, z)
+bool detected_tower
 geometry_msgs/Pose tower_position
 
 # Identify dirty patches (assume paint blobs are circular)

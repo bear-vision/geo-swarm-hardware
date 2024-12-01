@@ -8,6 +8,7 @@ from time import sleep
 from px4_msgs.msg import VehicleLocalPosition
 
 
+
 class PositionPubNode(Node):
     def __init__(self):
         super().__init__('position_pub_node')
