@@ -19,11 +19,13 @@ import rclpy
 import py_trees
 import py_trees_ros
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition
+from std_msgs.msg import Trigger
 from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
 from laptop_master.behaviours.get_waypoints_from_service import GetWaypointsFromService
+from laptop_master.behaviours.sprayer import SprayerBehaviour
 import sys
  
         
@@ -43,11 +45,16 @@ def create_root() -> py_trees.behaviour.Behaviour:
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
     get_waypoints_to_tower = GetWaypointsFromService(behaviour_name="Get Waypoints To Tower", service_type=PathPlannerSpin, service_name='plan_path_spin')
 
-    
     get_waypoints_around_tower = GetWaypointsFromService(behaviour_name="Get Waypoints Around Tower", service_type=PathPlannerSpin, service_name='plan_path_spin') 
     
     get_waypoints_to_paint = GetWaypointsFromService(behaviour_name="Get Waypoints To Paint", service_type=PathPlannerPaint, service_name='plan_path_paint')
     get_waypoints_up = GetWaypointsFromService(behaviour_name="Get Waypoints Up", service_type=PathPlannerUp, service_name='plan_path_up')
+
+
+    actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
+    turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
+
+
 
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     idle = py_trees.behaviours.Running(name="Idle")
