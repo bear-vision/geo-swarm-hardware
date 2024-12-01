@@ -7,9 +7,9 @@ from scipy.interpolate import CubicSpline
 import numpy as np
 import math
 
-from custom_srv_interfaces.srv import PathPlannerPaint
-from custom_srv_interfaces.srv import PathPlannerUp
-from custom_srv_interfaces.srv import PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint
+from custom_interfaces.srv import PathPlannerUp
+from custom_interfaces.srv import PathPlannerSpin
 
 class PathPlannerServiceNode(Node):
     def __init__(self):

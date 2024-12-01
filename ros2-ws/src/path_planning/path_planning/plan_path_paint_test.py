@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose
-from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np

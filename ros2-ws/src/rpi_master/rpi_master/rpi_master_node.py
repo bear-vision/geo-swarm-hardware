@@ -3,7 +3,7 @@ from rclpy.node import Node
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import Pose
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
-from custom_srv_interfaces.action import DroneNavigateToWaypoint
+from custom_interfaces.action import DroneNavigateToWaypoint
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus, VehicleAttitude
 from enum import Enum
