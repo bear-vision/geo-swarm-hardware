@@ -39,17 +39,11 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
         self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
         while not self.tower_waypoint_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for the plan_path_spin service...')
-        
-    
-    def update(self) -> Status:
-        """Creates a request for waypoints and saves the waypoints in the blackboard for
-           other behaviors to use
-
-        Returns:
-            Status: FAILURE if invalid x,y,z drone pose, or service call fails. SUCCESS if waypoints retrieved.
-        """
+            
+            
+    def initialise(self) -> None:
+        """Create a service request."""
         request = PathPlannerSpin.Request()
-        
         # Retrieve current pose from blackboard (ENU TO NED)
         if (self.blackboard.valid.xy_valid and self.blackboard.valid.z_valid):
             request.current_pose.position.x = self.blackboard.position.y
@@ -59,7 +53,6 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
         else:
             self.logger.error("GetWayPointsToTower: invalid drone x,y,z current pose")
             return Status.FAILURE
-        
         # TODO: retrieve tower pose from blackboard, using dummy for now
         goal_pose = Pose()
         goal_pose.position.x = 2.0  
@@ -68,12 +61,27 @@ class GetWaypointsToTower(py_trees.behaviour.Behaviour):
         goal_pose.orientation.w = 0.0
         
         # Request waypoints from service and save in blackboard for other behaviors to use
-        future = self.tower_waypoint_client.call_async(request)
-        if not future.done():
+        self.future = self.tower_waypoint_client.call_async(request)
+        self.logger.info(f'called service with current position:')
+    
+    
+    def update(self) -> Status:
+        """Check if service request was completed and retrieves the waypoints
+
+        Returns:
+            Status: FAILURE if invalid x,y,z drone pose, or service call fails. SUCCESS if waypoints retrieved.
+        """
+        self.logger.debug("{}.update()".format(self.qualified_name))
+        
+        if not self.future.done():
+            print("not done yet")
             return Status.RUNNING
+        
         try:
-            response = future.result()
+            response = self.future.result()
             self.waypoints = response.waypoints
+            self.logger.info(f'GetWayPointsToTower: retrieved waypoints:')
+            print(self.waypoints)
             return Status.SUCCESS
         except Exception as e:
             self.logger.error(f'GetWayPointsToTower: Service call failed: {str(e)}')
