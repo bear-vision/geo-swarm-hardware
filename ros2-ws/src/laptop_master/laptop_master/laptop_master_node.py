@@ -41,13 +41,13 @@ def create_root() -> py_trees.behaviour.Behaviour:
     gather_data.add_children([localPosition2BB, perception2BB])
     
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
-    get_waypoints_to_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin')
+    get_waypoints_to_tower = GetWaypointsFromService(behaviour_name="Get Waypoints To Tower", service_type=PathPlannerSpin, service_name='plan_path_spin')
 
     
-    get_waypoints_around_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin') 
+    get_waypoints_around_tower = GetWaypointsFromService(behaviour_name="Get Waypoints Around Tower", service_type=PathPlannerSpin, service_name='plan_path_spin') 
     
-    get_waypoints_to_paint = GetWaypointsFromService(service_type=PathPlannerPaint, service_name='plan_path_paint')
-    get_waypoints_up = GetWaypointsFromService(service_type=PathPlannerUp, service_name='plan_path_up')
+    get_waypoints_to_paint = GetWaypointsFromService(behaviour_name="Get Waypoints To Paint", service_type=PathPlannerPaint, service_name='plan_path_paint')
+    get_waypoints_up = GetWaypointsFromService(behaviour_name="Get Waypoints Up", service_type=PathPlannerUp, service_name='plan_path_up')
 
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     idle = py_trees.behaviours.Running(name="Idle")
