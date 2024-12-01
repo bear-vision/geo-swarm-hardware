@@ -1,0 +1,9 @@
+# Goal
+geometry_msgs/Pose waypoint # a 6DOF waypoint representing the desired position of the drone
+---
+# Result
+bool success
+string message
+---
+# Feedback
+geometry_msgs/Pose current_pose

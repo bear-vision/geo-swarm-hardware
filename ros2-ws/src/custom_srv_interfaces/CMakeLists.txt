@@ -20,8 +20,18 @@ find_package(geometry_msgs REQUIRED)
 set(SRVS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/srv")
 file(GLOB CUSTOM_SRVS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${SRVS_DIR}/*.srv")
 
+# get all msg files
+set(MSGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/msg")
+file(GLOB CUSTOM_MSGS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${MSGS_DIR}/*.msg")
+
+# get all action files
+set(ACTIONS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/action")
+file(GLOB CUSTOM_ACTIONS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${ACTIONS_DIR}/*.action")
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${CUSTOM_SRVS}
+  ${CUSTOM_MSGS}
+  ${CUSTOM_ACTIONS}
   DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for path planner msgs
 )
 
