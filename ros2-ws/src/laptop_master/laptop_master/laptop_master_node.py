@@ -24,8 +24,9 @@ from custom_srv_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlann
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
-from laptop_master.behaviours.get_waypoints_from_service import GetWaypointsFromService
+from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
 from laptop_master.behaviours.sprayer import SprayerBehaviour
+from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 import sys
  
         
@@ -42,46 +43,36 @@ def create_root() -> py_trees.behaviour.Behaviour:
     perception2BB = perception_to_blackboard()
     gather_data.add_children([localPosition2BB, perception2BB])
     
+    tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
+    
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
-    get_waypoints_to_tower = GetWaypointsFromService(
+    get_waypoints_to_tower = GetWaypointsTower(
         behaviour_name="Get Waypoints To Tower", 
         service_type=PathPlannerSpin, 
         service_name='plan_path_spin',
-        blackboard_waypoint_key="to_tower"
+        blackboard_waypoint_key="waypoints/to_tower"
     )
-
-    get_waypoints_around_tower = GetWaypointsFromService(
-        behaviour_name="Get Waypoints Around Tower", 
-        service_type=PathPlannerSpin, 
-        service_name='plan_path_spin',
-        blackboard_waypoint_key="around_tower"
-    ) 
-    
-    get_waypoints_to_paint = GetWaypointsFromService(
-        behaviour_name="Get Waypoints To Paint", 
-        service_type=PathPlannerPaint, 
-        service_name='plan_path_paint',
-        blackboard_waypoint_key="to_paint"
+    follow_waypoints_to_tower = FollowWaypoints(
+        behaviour_name="Follow Waypoints To Tower",
+        blackboard_waypoint_key="waypoints/to_tower"
     )
-    get_waypoints_up = GetWaypointsFromService(
-        behaviour_name="Get Waypoints Up", 
-        service_type=PathPlannerUp, 
-        service_name='plan_path_up',
-        blackboard_waypoint_key="up"
-    )
-
-
-    actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
-    turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
-
-
-
-    tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     idle = py_trees.behaviours.Running(name="Idle")
+    tasks.add_children([get_waypoints_to_tower, follow_waypoints_to_tower, idle])
+    
+
+    # get_waypoints_around_tower = GetWaypointsTower(
+    #     behaviour_name="Get Waypoints Around Tower", 
+    #     service_type=PathPlannerSpin, 
+    #     service_name='plan_path_spin',
+    #     blackboard_waypoint_key="waypoints/around_tower"
+    # ) 
+    # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
+    # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
+
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
     root.add_children([gather_data, tasks])
-    tasks.add_children([get_waypoints_to_tower, idle])
+    
 
     return root
 
