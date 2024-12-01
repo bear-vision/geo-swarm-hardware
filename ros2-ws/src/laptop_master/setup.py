@@ -29,7 +29,8 @@ setup(
     entry_points={
         'console_scripts': [
             'laptop_master_node = laptop_master.laptop_master_node:main',
-            'dummy_positionpub_node = laptop_master.dummy_positionpub_node:main',
+            'dummy_pub_node = laptop_master.dummy_pub_node:main',
+            'dummy_action_server_node = laptop_master.dummy_action_server_node:main'
         ],
     },
 )
