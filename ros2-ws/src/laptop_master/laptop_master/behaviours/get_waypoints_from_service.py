@@ -41,7 +41,7 @@ class GetWaypointsFromService(py_trees.behaviour.Behaviour):
         # self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
         self.waypoint_client = self.node.create_client(self.service_type, self.service_name)
         while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for the plan_path_spin service...')
+            self.get_logger().info('Waiting for the path planning service...')
             
             
     def initialise(self) -> None:
