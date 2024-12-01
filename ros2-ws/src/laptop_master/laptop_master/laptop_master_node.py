@@ -5,13 +5,11 @@ defined in a class.
 Behavior tree tutorial here: 
 https://py-trees-ros-tutorials.readthedocs.io/en/release-2.1.x/tutorials.html#tutorials
 
-A node is instantiated to allow communication with other ROS nodes. For example,
-we need to call services from path_planning node, subscribe to /detected_paint from
-the perception node, send px4 messages to control the drone flight, and communicate
-with the rpi to actuate the sprayers.
+Tutorial about how to set up py-trees behaviours with ROS subs, pubs, actions, and services:
+https://arvp.org/wp-content/uploads/development-documents/ARVP-Mission-Planner-Documentation.pdf
 
 By: Alexandra Zhang Jiang 
-Last modified: 11/30/2024
+Last modified: 12/01/2024
 """
 
 from py_trees.common import Status
@@ -78,9 +76,6 @@ def create_root() -> py_trees.behaviour.Behaviour:
 
 
 def main(args=None):
-    '''
-    https://github.com/splintered-reality/py_trees_ros_tutorials/blob/devel/py_trees_ros_tutorials/one_data_gathering.py
-    '''
     print('Hi from laptop_master.')
     
     rclpy.init(args=None)
