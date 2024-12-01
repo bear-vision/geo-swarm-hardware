@@ -30,7 +30,6 @@ setup(
         'console_scripts': [
             'laptop_master_node = laptop_master.laptop_master_node:main',
             'dummy_positionpub_node = laptop_master.dummy_positionpub_node:main',
-            'dummy_positionsub_node = laptop_master.dummy_positionsub_node:main'
         ],
     },
 )
