@@ -1,5 +1,3 @@
-'''NOT TESTED'''
-
 import py_trees
 from py_trees.common import Status
 from geometry_msgs.msg import Pose
@@ -39,7 +37,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         
     def initialise(self):
         self.current_waypoint_index = 0 
-        self.goal_handle = None
+        self._send_goal_future = None
         
     def update(self) -> Status:
         """Retrieve waypoints from blackboard and calls a ROS Action to nagivate to one waypoint at a time.
@@ -59,40 +57,50 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             return Status.SUCCESS
             
         # send one waypoint
-        if not self.goal_handle:
-            self.send_waypoint_to_action_client()
+        if self._send_goal_future is None:
+            self.send_next_waypoint()
             return Status.RUNNING
         
-        result = self.goal_handle.result()
-        
-        if result is None:
+        # still waiting for result
+        if not self._get_result_future:
             return Status.RUNNING
+        
+        if self.action_result is not None:
+            if self.action_result.success:
+                self.logger.info(f"Reached waypoint #{self.current_waypoint_index}")
+                self.current_waypoint_index += 1
+                self._send_goal_future = None
+                self._get_result_future = None
+                self.action_result = None
+                return Status.RUNNING
+            else:
+                self.logger.error(f"Failed to reach waypoint {self.current_waypoint_index}")
+                return Status.FAILURE
+        
+        return Status.RUNNING
 
-        if result.success:
-            self.logger.info(f"Reached waypoint #{self.current_waypoint_index}")
-            self.current_waypoint_index += 1
-            self.goal_handle = None
-            return Status.RUNNING
-        else:
-            self.logger.error(f"Failed to reach waypoint {self.current_waypoint_index}")
-            return Status.FAILURE
-    
-    def send_waypoint_to_action_client(self) -> None:
-        # Retrieve current waypoint
+    def send_next_waypoint(self):
         goal_msg = DroneNavigateToWaypoint.Goal()
-        goal_msg.waypoint = Pose()
         goal_msg.waypoint = self.waypoints[self.current_waypoint_index]
-        # Send waypoint to rpi master node action client
-        self.logger.info(f"Sending goal for waypoint #{self.current_waypoint_index}: ({goal_msg.waypoint.position.x}, {goal_msg.waypoint.position.y}, {goal_msg.waypoint.position.z}), yaw ({quaternion_to_yaw(goal_msg.waypoint.orientation)})")
-        self.goal_handle = self.action_client.send_goal_async(goal_msg)
-        self.goal_handle.add_done_callback(self.goal_response_callback)
+        self._send_goal_future = self.action_client.send_goal_async(goal_msg)
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
+        self.logger.info(f"Sending goal for waypoint #{self.current_waypoint_index}: "
+                        f"({goal_msg.waypoint.position.x}, {goal_msg.waypoint.position.y}, {goal_msg.waypoint.position.z}), "
+                        f"yaw ({quaternion_to_yaw(goal_msg.waypoint.orientation)})")
 
     def goal_response_callback(self, future) -> None:
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.logger.error(f"Goal for waypoint #{self.current_waypoint_index} was rejected")
-            self.goal_handle = None
-            
+            self._get_result_future = None
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.get_result_callback)
+        
+        
+    def get_result_callback(self, future):
+        self.action_result = future.result().result
+
+
     def terminate(self, new_status) -> None:
         """This is called whenever your node switches to a non running state (SUCCESS, FAILURE, or INVALID)
 
