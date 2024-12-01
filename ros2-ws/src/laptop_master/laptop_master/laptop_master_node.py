@@ -40,10 +40,14 @@ def create_root() -> py_trees.behaviour.Behaviour:
     # This will save the entire message
     localPosition2BB =  vehicle_local_position_to_blackboard()
     dummy_blackboard_reader = DummyBlackboardReader()
+
     
     # the service checks for radius away from tower, returns a linear path if too far, otherwise returns a circular path
     get_waypoints_to_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin')
     get_waypoints_around_tower = GetWaypointsFromService(service_type=PathPlannerSpin, service_name='plan_path_spin') 
+    
+    get_waypoints_to_paint = GetWaypointsFromService(service_type=PathPlannerPaint, service_name='plan_path_paint')
+    get_waypoints_up = GetWaypointsFromService(service_type=PathPlannerUp, service_name='plan_path_up')
 
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     idle = py_trees.behaviours.Running(name="Idle")
