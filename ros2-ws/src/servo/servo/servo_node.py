@@ -4,7 +4,7 @@ from rclpy.node import Node
 from gpiozero import AngularServo
 from time import sleep
 from std_srvs.srv import Trigger
-from custom_srv_interfaces.srv import ServoDurationControl, ServoAngleControl  # Custom service
+from custom_interfaces.srv import ServoDurationControl, ServoAngleControl  # Custom service
 
 
 
