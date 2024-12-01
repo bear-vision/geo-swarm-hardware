@@ -4,8 +4,8 @@ from geometry_msgs.msg import Pose, Quaternion
 import math
 
 class GetWaypointsFromService(py_trees.behaviour.Behaviour):
-    def __init__(self, service_type, service_name, name="Get waypoints to tower"):
-        super().__init__(name)
+    def __init__(self, behaviour_name, service_type, service_name):
+        super().__init__(behaviour_name)
         self.waypoints = None
         self.waypoint_client = None
         self.future = None
