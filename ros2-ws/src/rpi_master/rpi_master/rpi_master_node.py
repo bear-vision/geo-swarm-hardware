@@ -124,7 +124,8 @@ class RPiMasterNode(Node):
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
-        self.latest_waypoint = rpi_master_utils.px4_to_ros_transform(goal_handle.request.waypoint)
+        # convert waypoint to px4 coordinates 
+        self.latest_waypoint = rpi_master_utils.ros_to_px4_world_frame_transform(goal_handle.request.waypoint)
 
         # go to execute callback
         self.current_goal.execute()
@@ -136,7 +137,7 @@ class RPiMasterNode(Node):
     def execute_navigate_callback(self, goal_handle):
         """Executes the navigation callback. Monitors the current position of the drone vs final desired position"""
 
-        def pose_distance(pose_a, pose_b):
+        def pose_distance(pose_a: Pose, pose_b: Pose):
             # returns the two metrics of pose distance that we care about:
             # 1. distance in position (euclidean xyz) - in meters
             # 2. distance in yaw (manhattan yaw) - in radians
@@ -152,6 +153,7 @@ class RPiMasterNode(Node):
             #create a rate object for checking error range and goal cancellation
             error_check_rate = self.create_rate(20, self.get_clock())
 
+            # curr_pose and latest_waypoint are both in px4 coordinates
             curr_pose = self.get_current_pose()
             position_error, orientation_error = pose_distance(self.latest_waypoint, curr_pose)
 
@@ -175,7 +177,8 @@ class RPiMasterNode(Node):
 
                 # populate and publish feedback
                 feedback_msg = DroneNavigateToWaypoint.Feedback()
-                feedback_msg.current_pose = curr_pose
+                # transform current pose from px4 to ros2
+                feedback_msg.current_pose = rpi_master_utils.px4_to_ros_world_frame_transform(curr_pose)
                 goal_handle.publish_feedback(feedback_msg)
 
                 # update curr_pose and errors
@@ -373,7 +376,7 @@ class RPiMasterNode(Node):
         waypoint_pose = self.latest_waypoint
         msg = TrajectorySetpoint()
         msg.x, msg.y, msg.z = waypoint_pose.position.x, waypoint_pose.position.y, waypoint_pose.position.z
-        msg.yaw = rpi_master_utils.euler_from_quaternion(msg.orientation)[2]
+        msg.yaw = rpi_master_utils.euler_from_quaternion(waypoint_pose.orientation)[2]
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.trajectory_setpoint_publisher.publish(msg)
 
