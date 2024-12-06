@@ -14,6 +14,7 @@ from rpi_master import rpi_master_utils
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 import threading
+import asyncio
 
 # Lots of code in here is re-used from https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard_py/offboard_control.py     
 
@@ -65,8 +66,6 @@ class RPiMasterNode(Node):
         self.flight_state = DroneFlightState.GROUNDED
 
         self.current_goal = None # Example implementations use goal queues. We only need 1 goal at a time
-        
-        #geometry_msgs/Pose objs
         self.latest_waypoint = None
         self.prev_waypoint = None
 
@@ -102,6 +101,8 @@ class RPiMasterNode(Node):
             callback_group = MutuallyExclusiveCallbackGroup() #only allow serial execution of server callbacks
         )
 
+        self.pose_publisher = self.create_publisher(Pose, '/rpi_master/pose', qos_profile)
+
     def destroy(self):
         self.waypoint_action_server.destroy()
         super().destroy_node()
@@ -124,20 +125,20 @@ class RPiMasterNode(Node):
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
-        # convert waypoint to px4 coordinates 
-        self.latest_waypoint = rpi_master_utils.ros_to_px4_world_frame_transform(goal_handle.request.waypoint)
+        self.latest_waypoint = rpi_master_utils.px4_to_ros_transform(goal_handle.request.waypoint)
 
         # go to execute callback
-        self.current_goal.execute()
+        # self.current_goal.execute()
+        self.executor.create_task(self.execute_navigate_callback(goal_handle))
 
     def cancel_navigate_callback(self, goal_handle):
         """Accept or reject a client request to cancel an action."""
         return CancelResponse.ACCEPT
     
-    def execute_navigate_callback(self, goal_handle):
+    async def execute_navigate_callback(self, goal_handle):
         """Executes the navigation callback. Monitors the current position of the drone vs final desired position"""
 
-        def pose_distance(pose_a: Pose, pose_b: Pose):
+        def pose_distance(pose_a, pose_b):
             # returns the two metrics of pose distance that we care about:
             # 1. distance in position (euclidean xyz) - in meters
             # 2. distance in yaw (manhattan yaw) - in radians
@@ -153,7 +154,6 @@ class RPiMasterNode(Node):
             #create a rate object for checking error range and goal cancellation
             error_check_rate = self.create_rate(20, self.get_clock())
 
-            # curr_pose and latest_waypoint are both in px4 coordinates
             curr_pose = self.get_current_pose()
             position_error, orientation_error = pose_distance(self.latest_waypoint, curr_pose)
 
@@ -177,8 +177,7 @@ class RPiMasterNode(Node):
 
                 # populate and publish feedback
                 feedback_msg = DroneNavigateToWaypoint.Feedback()
-                # transform current pose from px4 to ros2
-                feedback_msg.current_pose = rpi_master_utils.px4_to_ros_world_frame_transform(curr_pose)
+                feedback_msg.current_pose = curr_pose
                 goal_handle.publish_feedback(feedback_msg)
 
                 # update curr_pose and errors
@@ -369,16 +368,24 @@ class RPiMasterNode(Node):
             Publishes the latest waypoint (stored in the class field self.latest_waypoint)
         '''
 
+        # if not self.latest_waypoint:
+        #     self.get_logger().warn("Tried to call publish_latest_waypoint without a valid latest waypoint. This call will do nothing.")
+        #     return
+
+        # msg = self.latest_waypoint
+        # msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        # self.trajectory_setpoint_publisher.publish(msg)
+
         if not self.latest_waypoint:
             self.get_logger().warn("Tried to call publish_latest_waypoint without a valid latest waypoint. This call will do nothing.")
-            return
+        return
 
-        waypoint_pose = self.latest_waypoint
-        msg = TrajectorySetpoint()
-        msg.x, msg.y, msg.z = waypoint_pose.position.x, waypoint_pose.position.y, waypoint_pose.position.z
-        msg.yaw = rpi_master_utils.euler_from_quaternion(waypoint_pose.orientation)[2]
-        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-        self.trajectory_setpoint_publisher.publish(msg)
+        # Log the current timestamp in microseconds
+        current_time_us = int(self.get_clock().now().nanoseconds / 1000)
+        self.get_logger().info(f"Timestamp (us): {current_time_us}")
+
+        # Assuming self.latest_waypoint is a valid Pose object
+        self.pose_publisher.publish(self.latest_waypoint)
 
     def offboard_command_timer_callback(self):
         #publish offboard mode commands if we are not in a GROUNDED state.

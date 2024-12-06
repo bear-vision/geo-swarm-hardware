@@ -2,7 +2,11 @@
 
 import rclpy
 from rclpy.node import Node
+<<<<<<< HEAD
 from px4_msgs.msg import VehicleControlMode, VehicleLocalPosition, VehicleStatus, VehicleAttitude
+=======
+from px4_msgs.msg import VehicleControlMode, VehicleLocalPosition, VehicleStatus
+>>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
 
 class PX4Subscriber(Node):
 
@@ -22,12 +26,15 @@ class PX4Subscriber(Node):
             self.local_position_callback, 
             10
         )
+<<<<<<< HEAD
         self.sub_local_position = self.create_subscription(
             VehicleAttitude, 
             '/fmu/out/vehicle_attitude', 
             self.vehicle_attitude_callback, 
             10
         )
+=======
+>>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
         self.sub_vehicle_status = self.create_subscription(
             VehicleStatus, 
             '/fmu/out/vehicle_status', 
@@ -40,8 +47,11 @@ class PX4Subscriber(Node):
 
     def local_position_callback(self, msg):
         self.get_logger().info(f"Local Position - X: {msg.x}, Y: {msg.y}, Z: {msg.z}")
+<<<<<<< HEAD
     def vehicle_attitude_callback(self, msg):
         self.get_logger().info(f"attitude quaternion: {msg.q}")    
+=======
+>>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
     def vehicle_status_callback(self, msg):
         self.get_logger().info(f"preflight check: {msg.pre_flight_checks_pass}")
 
