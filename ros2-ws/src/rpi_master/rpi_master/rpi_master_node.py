@@ -112,7 +112,7 @@ class RPiMasterNode(Node):
         with self.flight_state_lock:
             if self.flight_state is not DroneFlightState.NAVIGATING and self.current_goal is None:
                 # TODO - perform some validation on the goal request (for example, we should never allow requesting below or above a certain height)
-                self.current_goal = rpi_master_utils.px4_to_ros_transform(goal_request)
+                self.current_goal = rpi_master_utils.px4_to_ros_world_frame_transform(goal_request.waypoint)
 
                 self.flight_state = DroneFlightState.NAVIGATING
                 return GoalResponse.ACCEPT
@@ -125,7 +125,7 @@ class RPiMasterNode(Node):
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
-        self.latest_waypoint = rpi_master_utils.px4_to_ros_transform(goal_handle.request.waypoint)
+        self.latest_waypoint = rpi_master_utils.px4_to_ros_world_frame_transform(goal_handle.request.waypoint)
 
         # go to execute callback
         # self.current_goal.execute()
@@ -353,12 +353,8 @@ class RPiMasterNode(Node):
                https://docs.px4.io/main/en/ros2/offboard_control.html
         '''
         msg = OffboardControlMode()
+        #we are doing position control
         msg.position = True
-        msg.velocity = False
-        msg.acceleration = False
-        msg.attitude = False
-        msg.body_rate = False
-        msg.actuator = False
 
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.offboard_control_mode_publisher.publish(msg)
@@ -368,17 +364,21 @@ class RPiMasterNode(Node):
             Publishes the latest waypoint (stored in the class field self.latest_waypoint)
         '''
 
-        # if not self.latest_waypoint:
-        #     self.get_logger().warn("Tried to call publish_latest_waypoint without a valid latest waypoint. This call will do nothing.")
-        #     return
-
-        # msg = self.latest_waypoint
-        # msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-        # self.trajectory_setpoint_publisher.publish(msg)
-
         if not self.latest_waypoint:
             self.get_logger().warn("Tried to call publish_latest_waypoint without a valid latest waypoint. This call will do nothing.")
-        return
+            return
+
+        #latest_waypoint is a pose object. we need to publish TrajectorySetpoint
+        waypoint_pose = self.latest_waypoint
+
+        msg = TrajectorySetpoint()
+        msg.position = waypoint_pose.position.x, waypoint_pose.position.y, waypoint_pose.position.z
+        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        msg.yaw = rpi_master_utils.euler_from_quaternion(waypoint_pose.orientation)[2]
+
+        # self.get_logger().info(f"Latest waypoint object: {msg}")
+        self.trajectory_setpoint_publisher.publish(msg)
+
 
         # Log the current timestamp in microseconds
         current_time_us = int(self.get_clock().now().nanoseconds / 1000)
