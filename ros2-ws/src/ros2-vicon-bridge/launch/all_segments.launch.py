@@ -3,7 +3,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    vicon_computer_ip = "192.168.1.115" # ip address of vicon computer
+    vicon_computer_ip = "192.168.40.1" # ip address of vicon computer
     port_number = "801" # default port number
     host_name = f"{vicon_computer_ip}:{port_number}"
 
