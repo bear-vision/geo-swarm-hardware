@@ -33,7 +33,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             error_message = "didn't find 'node' in setup's kwargs [{}][{}]".format(self.qualified_name)
             raise KeyError(error_message) from e  # 'direct cause' traceability
         
-        self.action_client = ActionClient(self.node, DroneNavigateToWaypoint, 'go_to_waypoint') # TODO: @Calix
+        self.action_client = ActionClient(self.node, DroneNavigateToWaypoint, '/drone_navigate_to_waypoint')
         
     def initialise(self):
         self.current_waypoint_index = 0 

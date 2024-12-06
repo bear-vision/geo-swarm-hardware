@@ -54,7 +54,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Follow Waypoints To Tower",
         blackboard_waypoint_key="waypoints/to_tower"
     )
-    idle = py_trees.behaviours.Running(name="Idle")
+    idle = py_trees.behaviours.Running(name="Success!")
     tasks.add_children([get_waypoints_to_tower, follow_waypoints_to_tower, idle])
     
 
