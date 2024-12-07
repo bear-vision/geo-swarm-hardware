@@ -11,7 +11,7 @@ class GoToWaypointActionServer(Node):
         self._action_server = ActionServer(
             self,
             DroneNavigateToWaypoint,
-            'go_to_waypoint',
+            '/drone_navigate_to_waypoint',
             self.execute_callback)
 
     async def execute_callback(self, goal_handle):

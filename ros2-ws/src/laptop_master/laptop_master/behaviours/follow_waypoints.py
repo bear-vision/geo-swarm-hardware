@@ -65,6 +65,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         
         # still waiting for result
         if not self._get_result_future:
+            self.logger.debug(f"Still waiting for waypoint #{self.current_waypoint_index}")
             return Status.RUNNING
         
         if self.action_result is not None:

@@ -90,6 +90,9 @@ def create_root() -> py_trees.behaviour.Behaviour:
 def main(args=None):
     print('Hi from laptop_master.')
     
+    # FOR DEBUGGING
+    py_trees.logging.level = py_trees.logging.Level.DEBUG
+    
     rclpy.init(args=None)
     root = create_root()
     tree = py_trees_ros.trees.BehaviourTree(
@@ -110,6 +113,7 @@ def main(args=None):
         rclpy.try_shutdown()
         sys.exit(1)
 
+    tree.visitors.append(py_trees.visitors.DebugVisitor())
     tree.tick_tock(period_ms=1000.0)
 
     try:
