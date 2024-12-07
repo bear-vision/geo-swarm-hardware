@@ -9,7 +9,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
     def __init__(self, behaviour_name, blackboard_waypoint_key):
         super().__init__(behaviour_name)
         self.waypoints = None
-        self.waypoint_index = 0
+        self.current_waypoint_index = 0
         self.action_client = None
         self.action_result = None
         self._get_result_future = None
@@ -54,7 +54,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             self.waypoints = self.blackboard.waypoints.to_tower.poses
             return Status.RUNNING
         
-        if self.waypoint_index >= len(self.waypoints):
+        if self.current_waypoint_index >= len(self.waypoints):
             self.logger.info("All waypoints reached")
             return Status.SUCCESS
             
@@ -65,12 +65,12 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         
         # still waiting for result
         if not self._get_result_future:
-            self.logger.info(f"Still waiting for waypoint #{self.current_waypoint_index}")
+            self.logger.info(f"Still waiting for waypoint #{self.current_waypoint_index} of {len(self.waypoints)}")
             return Status.RUNNING
         
         if self.action_result is not None:
             if self.action_result.success:
-                self.logger.info(f"Reached waypoint #{self.current_waypoint_index}")
+                self.logger.info(f"Reached waypoint #{self.current_waypoint_index} of {len(self.waypoints)}")
                 self.current_waypoint_index += 1
                 self._send_goal_future = None
                 self._get_result_future = None

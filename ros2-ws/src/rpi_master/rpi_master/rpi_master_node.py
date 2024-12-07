@@ -112,11 +112,12 @@ class RPiMasterNode(Node):
 
     def navigate_goal_callback(self, goal_request):
         """Accept or reject a client request to begin an action."""
-        self.get_logger().info(f"Received waypoint goal: {goal_request.waypoint}")
+        self.get_logger().info(f"Received waypoint goal (ROS2): {goal_request.waypoint}")
         with self.flight_state_lock:
             if self.flight_state is not DroneFlightState.NAVIGATING and self.current_goal is None:
                 # TODO - perform some validation on the goal request (for example, we should never allow requesting below or above a certain height)
                 self.current_goal = rpi_master_utils.px4_to_ros_world_frame_transform(goal_request.waypoint)
+                self.get_logger().info(f"Transformed waypoint goal (PX4): {self.current_goal}")
                 self.flight_state = DroneFlightState.NAVIGATING
 
                 self.get_logger().info(f"Received a good waypoint. Accepting waypoint request")
@@ -130,12 +131,12 @@ class RPiMasterNode(Node):
     def handle_accepted_navigate_callback(self, goal_handle):
         '''Start or defer execution of an already-accepted goal'''
 
-        self.get_logger().info(f"Processing accepted waypoint: {goal_handle.request.waypoint}")
+        self.get_logger().info(f"Processing accepted waypoint (ROS2): {goal_handle.request.waypoint}")
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
         self.latest_waypoint = rpi_master_utils.px4_to_ros_world_frame_transform(goal_handle.request.waypoint)
-
+        self.get_logger().info(f"Processing accepted waypoint (PX4): {self.latest_waypoint}")
         # go to execute callback
         goal_handle.execute()
         # self.executor.create_task(self.execute_navigate_callback(goal_handle))
@@ -219,6 +220,8 @@ class RPiMasterNode(Node):
 
             with self.flight_state_lock:
                 self.flight_state = DroneFlightState.HOVERING
+            
+            self.get_logger().info(f"Succesfully navigated to waypoint {self.latest_waypoint}.")
 
         except Exception as e:
             # handle errors/exceptions - TODO define desired behavior.
@@ -274,6 +277,7 @@ class RPiMasterNode(Node):
 
     def vehicle_command_ack_callback(self, vehicle_command_ack):
         """Update latest vehicle command ack."""
+        #TODO: find a way to more meaningfully process the vehicle command ack
         self.latest_vehicle_command_ack = vehicle_command_ack
 
     def publish_vehicle_command(self, command_id, *args):
