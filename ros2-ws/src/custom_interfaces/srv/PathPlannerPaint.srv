@@ -1,4 +1,5 @@
 geometry_msgs/Pose current_pose # current drone pose in world frame as ROS2 Pose object
 geometry_msgs/Pose target_pose # target paint pose in world frame as ROS2 Pose object
+int32 num_waypoints
 ---
 geometry_msgs/PoseArray waypoints # array of all waypoint poses which lead to desired destinations in world coordinates as ROS2 PoseArray object

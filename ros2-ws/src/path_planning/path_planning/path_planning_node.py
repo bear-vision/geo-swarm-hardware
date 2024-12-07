@@ -25,7 +25,12 @@ class PathPlannerServiceNode(Node):
         self.plan_path_service = self.create_service(
             PathPlannerSpin, 'plan_path_spin', self.generate_waypoints_spin_around_tower)
 
-    def generate_waypoints_towards_paint(self, request, response, num_waypoints=100):
+    def generate_waypoints_towards_paint(self, request, response):
+        num_waypoints = request.num_waypoints
+        if num_waypoints <= 0:
+            #TODO - handle the case where we have an invalid number of waypoints. Setting to 10 for now
+            num_waypoints = 10
+
         # response incude start and goal position
         # Generate timestamps for the waypoints
         t = np.linspace(0, 1, num_waypoints)
@@ -81,8 +86,15 @@ class PathPlannerServiceNode(Node):
         self.get_logger().info('Lets clean the paint...')
         return response
     
-    def generate_waypoints_going_up(self, request, response, num_waypoints=20, heightDiff=1):
+    def generate_waypoints_going_up(self, request, response, heightDiff=1):
+
+        num_waypoints = request.num_waypoints
+        if num_waypoints <= 0:
+            #TODO - handle the case where we have an invalid number of waypoints. Setting to 5 for now
+            num_waypoints = 5
+
         # response incude start and goal position
+        
 
         # Generate timestamps for the waypoints
         t = np.linspace(0, 1, num_waypoints)
@@ -128,7 +140,13 @@ class PathPlannerServiceNode(Node):
         self.get_logger().info('We are going up...')
         return response
     
-    def generate_waypoints_spin_around_tower(self, request, response, num_waypoints=500, radius=0.5, transition_fraction=0.2):
+    def generate_waypoints_spin_around_tower(self, request, response, radius=0.5, transition_fraction=0.2):
+
+        num_waypoints = request.num_waypoints
+        if num_waypoints <= 0:
+            #TODO - handle the case where we have an invalid number of waypoints. Setting to 25 for now
+            num_waypoints = 25
+
         # Extract current and tower positions
         curr_x = request.current_pose.position.x
         curr_y = request.current_pose.position.y
