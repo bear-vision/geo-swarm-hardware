@@ -1,8 +1,9 @@
 import py_trees
 import py_trees_ros
 from px4_msgs.msg import VehicleLocalPosition
+from rclpy.qos import QoSProfile
 
-def vehicle_local_position_to_blackboard():
+def vehicle_local_position_to_blackboard(qos_profile: QoSProfile):
     """Creates a blackboard to view ENTIRE VehicleLocalPosition message. 
        ROS subscribers are asynchronous, while py-trees are synchronous. This means 
        that sometimes there will be no messages on a tick, or there will be new messages
@@ -38,7 +39,7 @@ def vehicle_local_position_to_blackboard():
         #     'drone/valid/z_valid': False
         # },
         clearing_policy=py_trees.common.ClearingPolicy.NEVER,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched() # we care about most recent data, no need to ensure all messages were delivered
+        qos_profile=qos_profile
     )
     
     return localPosition2BB

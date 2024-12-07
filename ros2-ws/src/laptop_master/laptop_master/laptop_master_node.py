@@ -25,19 +25,31 @@ from laptop_master.behaviours.perception_2BB import *
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+
 import sys
  
+def custom_qos():
+    qos_profile = QoSProfile(
+        reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        history=QoSHistoryPolicy.KEEP_LAST,
+        depth=1
+    )
+    return qos_profile
         
 def create_root() -> py_trees.behaviour.Behaviour:
+    # TODO make sure that when no data available, you don't try to get waypoints
     root = py_trees.composites.Parallel(
         name="Test",
         policy=py_trees.common.ParallelPolicy.SuccessOnAll(
             synchronise=False
         )
     )
+    
+    qos_profile = custom_qos()
 
     gather_data = py_trees.composites.Sequence(name="Gather Data", memory=True)
-    localPosition2BB =  vehicle_local_position_to_blackboard()
+    localPosition2BB =  vehicle_local_position_to_blackboard(qos_profile)
     perception2BB = perception_to_blackboard()
     gather_data.add_children([localPosition2BB, perception2BB])
     

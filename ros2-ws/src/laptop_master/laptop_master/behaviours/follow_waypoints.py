@@ -12,6 +12,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.waypoint_index = 0
         self.action_client = None
         self.action_result = None
+        self._get_result_future = None
         self.bb_waypoints_key = blackboard_waypoint_key
         self.blackboard = self.attach_blackboard_client() 
         self.blackboard.register_key(self.bb_waypoints_key, access=py_trees.common.Access.READ)

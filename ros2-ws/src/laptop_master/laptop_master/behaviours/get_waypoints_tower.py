@@ -60,11 +60,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
                 request.current_pose.position.x = self.blackboard.drone.position.y
                 request.current_pose.position.y = self.blackboard.drone.position.x
                 request.current_pose.position.z = -self.blackboard.drone.position.z
-                or_x, or_y, or_z, or_w = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
-                request.current_pose.orientation.x = or_x
-                request.current_pose.orientation.y = or_y
-                request.current_pose.orientation.z = or_z
-                request.current_pose.orientation.w = or_w
+                request.current_pose.orientation = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:
@@ -121,8 +117,8 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
 # TODO: maybe put these in a common library
 def yaw_to_quaternion(yaw):
     # Convert yaw to quaternion (for ROS orientation)
-    # q = Quaternion()
-    # q.z = float(math.sin(yaw / 2.0))
-    # q.w = float(math.cos(yaw / 2.0))
-    return 0, 0, float(math.sin(yaw / 2.0)), float(math.cos(yaw / 2.0))
+    q = Quaternion()
+    q.z = float(math.sin(yaw / 2.0))
+    q.w = float(math.cos(yaw / 2.0))
+    return q
 
