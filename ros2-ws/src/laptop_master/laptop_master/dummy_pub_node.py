@@ -40,7 +40,7 @@ class DummyPubNode(Node):
         perception_msg.tower_position.orientation.x = 0.0
         perception_msg.tower_position.orientation.y = 0.0
         perception_msg.tower_position.orientation.z = 0.0
-        perception_msg.tower_position.orientation.w = 0.0
+        perception_msg.tower_position.orientation.w = 1.0
         self.perception_pub.publish(perception_msg)
         self.get_logger().debug(f"Published tower: (x=10.0, y=10.0, z=10.0)")
     
