@@ -5,7 +5,7 @@ from geometry_msgs.msg import Pose
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from custom_interfaces.action import DroneNavigateToWaypoint
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus, VehicleAttitude
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleCommandAck, VehicleStatus, VehicleAttitude
 from enum import Enum
 import numpy as np
 from rpi_master import rpi_master_utils
@@ -65,6 +65,7 @@ class RPiMasterNode(Node):
         self.vehicle_attitude = VehicleAttitude()
         self.vehicle_status = VehicleStatus()
         self.flight_state = DroneFlightState.GROUNDED
+        self.latest_vehicle_command_ack = VehicleCommandAck()
 
         self.current_goal = None # Example implementations use goal queues. We only need 1 goal at a time
         self.latest_waypoint = None
@@ -81,6 +82,7 @@ class RPiMasterNode(Node):
         self.vehicle_local_position_subscriber = self.create_subscription(VehicleLocalPosition, '/fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_profile)
         self.vehicle_attitude_subscriber = self.create_subscription(VehicleAttitude, '/fmu/out/vehicle_attitude', self.vehicle_attitude_callback, qos_profile)
         self.vehicle_status_subscriber = self.create_subscription(VehicleStatus, '/fmu/out/vehicle_status', self.vehicle_status_callback, qos_profile)
+        self.vehicle_command_ack_subscriber = self.create_subscription(VehicleCommandAck, '/fmu/out/vehicle_command_ack', self.vehicle_command_ack_callback, qos_profile)
 
         # Set up publishers for Pixhawk
         self.offboard_control_mode_publisher = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
@@ -160,6 +162,10 @@ class RPiMasterNode(Node):
         try:
             self.get_logger().info("Executing navigate to waypoint action.")
 
+            #try to switch to offboard mode
+            self.engage_offboard_mode()
+            #TODO check offboard mode
+
             #arm subroutine
             while self.vehicle_status.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
                 self.arm()
@@ -197,7 +203,7 @@ class RPiMasterNode(Node):
                 # update curr_pose and errors
                 curr_pose = self.get_current_pose()
                 position_error, orientation_error = pose_distance(self.latest_waypoint, curr_pose)
-                self.get_logger().info(f"Current position error (m): {position_error}, Current orientation error (rad): {orientation_error}")
+                # self.get_logger().info(f"Current position error (m): {position_error}, Current orientation error (rad): {orientation_error}")
                 # sleep for a tiny bit 
                 error_check_rate.sleep()
 
@@ -214,7 +220,6 @@ class RPiMasterNode(Node):
             with self.flight_state_lock:
                 self.flight_state = DroneFlightState.HOVERING
 
-            return result
         except Exception as e:
             # handle errors/exceptions - TODO define desired behavior.
             self.get_logger().info(f"Error encountered in executing navigation callback: {traceback.format_exc()}")
@@ -226,7 +231,7 @@ class RPiMasterNode(Node):
             self.get_logger().info("Aborting action.")
             
         finally:
-            self.get_logger().info(f"Finally")
+            self.get_logger().info(f"Finished executing action. Setting current goal to none")
 
             # unset current goal/waypoint.
             self.current_goal = None
@@ -266,6 +271,10 @@ class RPiMasterNode(Node):
     def vehicle_status_callback(self, vehicle_status):
         """Update vehicle status."""
         self.vehicle_status = vehicle_status
+
+    def vehicle_command_ack_callback(self, vehicle_command_ack):
+        """Update latest vehicle command ack."""
+        self.latest_vehicle_command_ack = vehicle_command_ack
 
     def publish_vehicle_command(self, command_id, *args):
         '''
@@ -375,6 +384,12 @@ class RPiMasterNode(Node):
         """Switch to land mode."""
         self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
         self.get_logger().info("Switching to land mode")
+
+    def engage_offboard_mode(self):
+        """Switch to offboard mode."""
+        self.publish_vehicle_command(
+            VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
+        self.get_logger().info("Switching to offboard mode")
 
     def publish_offboard_control_mode(self):
         '''
