@@ -55,8 +55,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
         request = self.service_type.Request()
         
         try:
-            # Retrieve current pose from blackboard (ENU TO NED)
-            self.logger.info(f'{self.blackboard.drone.position.x}')
+            # Retrieve current pose from blackboard (PX4 to ROS2 frame)
             if (self.blackboard.drone.valid.xy_valid and self.blackboard.drone.valid.z_valid):
                 request.current_pose.position.x = self.blackboard.drone.position.y
                 request.current_pose.position.y = self.blackboard.drone.position.x
@@ -72,7 +71,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
             self.logger.error(f"No local position found. Is vehicle local position topic available? {str(e)}")
         
         try:
-            # Retrieve tower pose from blackboard (in NED)
+            # Retrieve tower pose from blackboard (in NED - PX4 frame)
             goal_pose = Pose()
             goal_pose.position = self.blackboard.tower.position
             goal_pose.orientation = self.blackboard.tower.orientation
