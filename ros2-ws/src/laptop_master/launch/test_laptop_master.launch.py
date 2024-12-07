@@ -13,14 +13,14 @@ def generate_launch_description():
             executable='dummy_pub_node',
             name='dummy_pub_node'
         ),
-        Node(
-            package='laptop_master',
-            executable='dummy_action_server_node',
-            name='dummy_action_server_node'
-        )
         # Node(
-        #     package='rpi_master',
-        #     executable='rpi_master_node',
-        #     name='rpi_master_node'
+        #     package='laptop_master',
+        #     executable='dummy_action_server_node',
+        #     name='dummy_action_server_node'
         # )
+        Node(
+            package='rpi_master',
+            executable='rpi_master_node',
+            name='rpi_master_node'
+        )
     ])

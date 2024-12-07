@@ -2,58 +2,56 @@
 
 import rclpy
 from rclpy.node import Node
-<<<<<<< HEAD
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+
 from px4_msgs.msg import VehicleControlMode, VehicleLocalPosition, VehicleStatus, VehicleAttitude
-=======
-from px4_msgs.msg import VehicleControlMode, VehicleLocalPosition, VehicleStatus
->>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
 
 class PX4Subscriber(Node):
 
     def __init__(self):
         super().__init__('px4_subscriber')
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
 
         # Subscribe to PX4 topics
         self.sub_control_mode = self.create_subscription(
             VehicleControlMode, 
             '/fmu/out/vehicle_control_mode', 
             self.control_mode_callback, 
-            10
+            qos_profile
         )
         self.sub_local_position = self.create_subscription(
             VehicleLocalPosition, 
             '/fmu/out/vehicle_local_position', 
             self.local_position_callback, 
-            10
+            qos_profile
         )
-<<<<<<< HEAD
         self.sub_local_position = self.create_subscription(
             VehicleAttitude, 
             '/fmu/out/vehicle_attitude', 
             self.vehicle_attitude_callback, 
-            10
+            qos_profile
         )
-=======
->>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
         self.sub_vehicle_status = self.create_subscription(
             VehicleStatus, 
             '/fmu/out/vehicle_status', 
             self.vehicle_status_callback, 
-            10
+            qos_profile
         )
 
     def control_mode_callback(self, msg):
-        self.get_logger().info(f"Control Mode: {msg}")
+        self.get_logger().info(f"Control Mode: {msg}\n")
 
     def local_position_callback(self, msg):
-        self.get_logger().info(f"Local Position - X: {msg.x}, Y: {msg.y}, Z: {msg.z}")
-<<<<<<< HEAD
+        self.get_logger().info(f"Local Position \n - X: {msg.x} \n - Y: {msg.y} \n - Z: {msg.z}\n")
     def vehicle_attitude_callback(self, msg):
-        self.get_logger().info(f"attitude quaternion: {msg.q}")    
-=======
->>>>>>> 8ec59d8bd28659256562cfdf4c4d8b63f83e2348
+        self.get_logger().info(f"attitude quaternion: \n - {msg.q}\n")    
     def vehicle_status_callback(self, msg):
-        self.get_logger().info(f"preflight check: {msg.pre_flight_checks_pass}")
+        self.get_logger().info(f"preflight check: {msg.pre_flight_checks_pass}\n")
 
 
 

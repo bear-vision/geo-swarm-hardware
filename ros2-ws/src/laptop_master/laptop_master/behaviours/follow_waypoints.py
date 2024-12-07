@@ -13,6 +13,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.action_client = None
         self.action_result = None
         self._get_result_future = None
+        self.goal_handle = None
         self.bb_waypoints_key = blackboard_waypoint_key
         self.blackboard = self.attach_blackboard_client() 
         self.blackboard.register_key(self.bb_waypoints_key, access=py_trees.common.Access.READ)
@@ -96,6 +97,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         if not goal_handle.accepted:
             self.logger.error(f"Goal for waypoint #{self.current_waypoint_index} was rejected")
             self._get_result_future = None
+        self.goal_handle = goal_handle
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self.get_result_callback)
         
@@ -111,7 +113,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             new_status: stateus we terminate  the node with 
         """
         self.logger.info(f"Terminating with new status: {new_status}")
-        if self.goal_handle and self.goal_handle.is_active():
+        if self.goal_handle and new_status == Status.FAILURE or new_status == Status.INVALID:
             self.logger.info("Cancelling current goal")
             self.goal_handle.cancel_goal_async()
         self.goal_handle = None
