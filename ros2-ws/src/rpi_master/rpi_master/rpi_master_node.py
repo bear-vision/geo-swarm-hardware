@@ -9,6 +9,7 @@ from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
 from enum import Enum
 import numpy as np
 from rpi_master import rpi_master_utils
+import traceback
 
 # for use when implementing multithreading
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -45,11 +46,11 @@ class RPiMasterNode(Node):
         # Set up service proxies for servo node
         self.sprayer_on_client = self.create_client(Trigger, 'sprayer_on')
         self.sprayer_off_client = self.create_client(Trigger, 'sprayer_off')
-        if not self.sprayer_on_client.wait_for_service(timeout_sec = 2.0):
+        if not self.sprayer_on_client.wait_for_service(timeout_sec = 1.0):
             self.get_logger().warn("Sprayer on client not set up.")
         else:
             self.get_logger().info("Sprayer on client set up.")
-        if not self.sprayer_off_client.wait_for_service(timeout_sec = 2.0):
+        if not self.sprayer_off_client.wait_for_service(timeout_sec = 1.0):
             self.get_logger().warn("Sprayer off client not set up.")
         else:
             self.get_logger().info("Sprayer off client set up.")
@@ -93,7 +94,7 @@ class RPiMasterNode(Node):
         # Set up waypoint navigation action server
         self.waypoint_action_server = ActionServer(self, 
             DroneNavigateToWaypoint, 
-            'drone_navigate_to_waypoint',
+            '/drone_navigate_to_waypoint',
             handle_accepted_callback = self.handle_accepted_navigate_callback,
             execute_callback = self.execute_navigate_callback,
             goal_callback = self.navigate_goal_callback,
@@ -109,30 +110,38 @@ class RPiMasterNode(Node):
 
     def navigate_goal_callback(self, goal_request):
         """Accept or reject a client request to begin an action."""
+        self.get_logger().info(f"Received waypoint goal: {goal_request.waypoint}")
         with self.flight_state_lock:
             if self.flight_state is not DroneFlightState.NAVIGATING and self.current_goal is None:
                 # TODO - perform some validation on the goal request (for example, we should never allow requesting below or above a certain height)
                 self.current_goal = rpi_master_utils.px4_to_ros_world_frame_transform(goal_request.waypoint)
-
                 self.flight_state = DroneFlightState.NAVIGATING
+
+                self.get_logger().info(f"Received a good waypoint. Accepting waypoint request")
                 return GoalResponse.ACCEPT
             else:
                 # If we are currently navigating, do not allow another request
+
+                self.get_logger().info(f"Drone not ready to accept a new waypoint (flight state: {self.flight_state}, current goal: {self.current_goal}). Rejecting waypoint request")
                 return GoalResponse.REJECT 
 
     def handle_accepted_navigate_callback(self, goal_handle):
         '''Start or defer execution of an already-accepted goal'''
+
+        self.get_logger().info(f"Processing accepted waypoint: {goal_handle.request.waypoint}")
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
         self.latest_waypoint = rpi_master_utils.px4_to_ros_world_frame_transform(goal_handle.request.waypoint)
 
         # go to execute callback
-        # self.current_goal.execute()
-        self.executor.create_task(self.execute_navigate_callback(goal_handle))
+        goal_handle.execute()
+        # self.executor.create_task(self.execute_navigate_callback(goal_handle))
 
     def cancel_navigate_callback(self, goal_handle):
         """Accept or reject a client request to cancel an action."""
+
+        self.get_logger().info(f"Received a cancel navigation action request. Accepting.")
         return CancelResponse.ACCEPT
     
     async def execute_navigate_callback(self, goal_handle):
@@ -149,13 +158,18 @@ class RPiMasterNode(Node):
             return position_error, orientation_error
 
         try:
-            self.get_logger().info("Executing goal...")
+            self.get_logger().info("Executing navigate to waypoint action.")
+
+            #arm subroutine
+            while self.vehicle_status.arming_state == VehicleStatus.ARMING_STATE_DISARMED:
+                self.arm()
 
             #create a rate object for checking error range and goal cancellation
             error_check_rate = self.create_rate(20, self.get_clock())
 
             curr_pose = self.get_current_pose()
             position_error, orientation_error = pose_distance(self.latest_waypoint, curr_pose)
+            result = DroneNavigateToWaypoint.Result()
 
             while position_error > self.POSITION_CONTROL_MAX_POSITION_ERROR or orientation_error > self.POSITION_CONTROL_MAX_ORIENTATION_ERROR:
 
@@ -183,7 +197,7 @@ class RPiMasterNode(Node):
                 # update curr_pose and errors
                 curr_pose = self.get_current_pose()
                 position_error, orientation_error = pose_distance(self.latest_waypoint, curr_pose)
-
+                self.get_logger().info(f"Current position error (m): {position_error}, Current orientation error (rad): {orientation_error}")
                 # sleep for a tiny bit 
                 error_check_rate.sleep()
 
@@ -193,7 +207,7 @@ class RPiMasterNode(Node):
             goal_handle.succeed()
 
             # Populate result message
-            result = DroneNavigateToWaypoint.Result()
+            
             result.success = True
             result.message = "Succesfully navigated to waypoint."
 
@@ -203,24 +217,41 @@ class RPiMasterNode(Node):
             return result
         except Exception as e:
             # handle errors/exceptions - TODO define desired behavior.
-            self.get_logger().error(f"Error encountered in executing navigation callback: {e}")
+            self.get_logger().info(f"Error encountered in executing navigation callback: {traceback.format_exc()}")
+
+            result = DroneNavigateToWaypoint.Result()
+            result.success = False
+            result.message = f"Navigate to waypoint action encountered an error: {e}"
+            goal_handle.abort()
+            self.get_logger().info("Aborting action.")
+            
         finally:
+            self.get_logger().info(f"Finally")
+
             # unset current goal/waypoint.
             self.current_goal = None
+
+        return result
 
         
     def get_current_pose(self):
         """Get current pose of the drone as a geometry_msgs/msg/Pose object. Returns the current pose in PX4 frame."""
         # TODO use threading to handle concurrency correctly
         pose_obj = Pose()
-        pose_obj.position.x = self.vehicle_local_position.x
-        pose_obj.position.y = self.vehicle_local_position.y
-        pose_obj.position.z = self.vehicle_local_position.z
+        if self.vehicle_local_position:
+            pose_obj.position.x = self.vehicle_local_position.x
+            pose_obj.position.y = self.vehicle_local_position.y
+            pose_obj.position.z = self.vehicle_local_position.z
+        else:
+            self.get_logger().warning(f"get_current_pose(): Vehicle local position is None. Pose position will be at (x = 0, y = 0, z = 0).")
 
-        pose_obj.orientation.w = self.vehicle_attitude.q[0]
-        pose_obj.orientation.x = self.vehicle_attitude.q[1]
-        pose_obj.orientation.y = self.vehicle_attitude.q[2]
-        pose_obj.orientation.z = self.vehicle_attitude.q[3]
+        if self.vehicle_attitude:
+            pose_obj.orientation.w = float(self.vehicle_attitude.q[0])
+            pose_obj.orientation.x = float(self.vehicle_attitude.q[1])
+            pose_obj.orientation.y = float(self.vehicle_attitude.q[2])
+            pose_obj.orientation.z = float(self.vehicle_attitude.q[3])
+        else:
+            self.get_logger().warning(f"get_current_pose(): Vehicle attitude is None. Pose orientation will be at (w = 1, x = 0, y = 0, z = 0).")
 
         return pose_obj
 
@@ -253,7 +284,7 @@ class RPiMasterNode(Node):
         # Populate msg params - see https://github.com/PX4/px4_msgs/blob/release/1.14/msg/VehicleCommand.msg#L165C1-L171C79
         # Only need the first 7 args. if needed, pad args until length 7. default value for float types is 0 anyways.
         args = (args + (0.,) * max(0, 7 - len(args)))[:7]
-        self.get_logger().info(f"args: {args}")
+        # self.get_logger().info(f"args: {args}")
         msg.param1, msg.param2, msg.param3, msg.param4, msg.param5, msg.param6, msg.param7 = args
 
         self.vehicle_command_publisher.publish(msg)
@@ -381,23 +412,26 @@ class RPiMasterNode(Node):
 
 
         # Log the current timestamp in microseconds
-        current_time_us = int(self.get_clock().now().nanoseconds / 1000)
-        self.get_logger().info(f"Timestamp (us): {current_time_us}")
+        # current_time_us = int(self.get_clock().now().nanoseconds / 1000)
+        # self.get_logger().info(f"Timestamp (us): {current_time_us}")
 
         # Assuming self.latest_waypoint is a valid Pose object
         self.pose_publisher.publish(self.latest_waypoint)
 
     def offboard_command_timer_callback(self):
+        # in simulation, always publish offboard commands (TODO: verify desired behavior)
+
         #publish offboard mode commands if we are not in a GROUNDED state.
-        if self.flight_state is not DroneFlightState.GROUNDED:
-            self.publish_offboard_control_mode()
+        # if self.flight_state is not DroneFlightState.GROUNDED:
+
+        self.publish_offboard_control_mode()
 
     def latest_waypoint_timer_callback(self):
         current_flight_state = None
         with self.flight_state_lock:
             current_flight_state = self.flight_state
-        if current_flight_state is not DroneFlightState.GROUNDED and self.latest_waypoint is not None:
-            self.publish_latest_waypoint()
+            if current_flight_state is not DroneFlightState.GROUNDED and self.latest_waypoint is not None:
+                self.publish_latest_waypoint()
 
 def main(args = None):
     # Initialize node

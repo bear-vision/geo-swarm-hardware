@@ -28,7 +28,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             KeyError: if a ros2 node isn't passed under the key 'node' in kwargs
         """
         # Get node from the tree
-        self.logger.debug("{}.setup()".format(self.qualified_name))
+        self.logger.info("{}.setup()".format(self.qualified_name))
         try:
             self.node = kwargs['node']
         except KeyError as e:
@@ -65,7 +65,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         
         # still waiting for result
         if not self._get_result_future:
-            self.logger.debug(f"Still waiting for waypoint #{self.current_waypoint_index}")
+            self.logger.info(f"Still waiting for waypoint #{self.current_waypoint_index}")
             return Status.RUNNING
         
         if self.action_result is not None:
