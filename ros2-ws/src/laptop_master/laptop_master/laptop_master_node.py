@@ -100,7 +100,7 @@ def main(args=None):
         unicode_tree_debug=True
     )
     try:
-        tree.setup(node_name="foo", timeout=15.0)
+        tree.setup(node_name="laptop_master_node", timeout=15.0)
     except py_trees_ros.exceptions.TimedOutError as e:
         py_trees.console.logerror(py_trees.console.red + "failed to setup the tree, aborting [{}]".format(str(e)) + py_trees.console.reset)
         tree.shutdown()
