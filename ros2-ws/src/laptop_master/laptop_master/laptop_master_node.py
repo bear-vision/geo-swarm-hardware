@@ -66,8 +66,23 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Follow Waypoints To Tower",
         blackboard_waypoint_key="waypoints/to_tower"
     )
+    navigate_to_tower_sequence.add_children([get_waypoints_to_tower, follow_waypoints_to_tower])
+    
+    circle_tower = py_trees.composites.Sequence(name="Circle Tower", memory=True)
+    get_waypoints_around_tower = GetWaypointsTower(
+        behaviour_name="Get Waypoints Around Tower",
+        service_type=PathPlannerSpin,
+        service_name="plan_path_spin",
+        blackboard_waypoint_key="waypoints/around_tower"
+    )
+    follow_waypoints_around_tower=FollowWaypoints(
+        behaviour_name="Follow Waypoints Around Tower",
+        blackboard_waypoint_key="waypoints/around_tower"
+    )
+    circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower])
+        
     idle = py_trees.behaviours.Running(name="Success!")
-    tasks.add_children([get_waypoints_to_tower, follow_waypoints_to_tower, idle])
+    tasks.add_children([navigate_to_tower_sequence, circle_tower, idle])
     
 
     # get_waypoints_around_tower = GetWaypointsTower(
