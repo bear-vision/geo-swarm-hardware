@@ -104,6 +104,9 @@ class RPiMasterNode(Node):
             callback_group = MutuallyExclusiveCallbackGroup() #only allow serial execution of server callbacks
         )
 
+        # Set up service for landing drone
+        self.landing_srv = self.create_service(Trigger, '/rpi_master/land_drone', self.land_callback)
+
         self.pose_publisher = self.create_publisher(Pose, '/rpi_master/pose', qos_profile)
 
     def destroy(self):
@@ -319,6 +322,28 @@ class RPiMasterNode(Node):
         # https://github.com/PX4/px4_msgs/blob/ffb6e80e1c17e5714395611a020c282a87af8fa4/msg/VehicleCommand.msg#L78C1-L78C99
         self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0)
         self.get_logger().info("Disarm command sent.")
+    
+    def land_callback(self, request, response):
+        """
+            Repeatedly try to switch the drone into land mode. Waits for up to a second to make sure drone is in land mode before returning failure.
+        """
+        #send command for land mode
+        self.land()
+
+        num_checks = 20
+        check_rate = self.create_rate(1.0 / num_checks, self.get_clock())
+        checks = 0
+        while checks < num_checks:
+            #perform check
+            if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_AUTO_LAND:
+                response.success = True
+                response.message = "Succesfully entered land mode."
+                return response
+            checks += 1
+
+        reponse.success = False
+        response.message = "Did not enter land mode within 1 second of sending land vehicle command."
+        return response
 
     def rpi_sprayer_on_callback(self, request, response):
         def handle_auxiliary_response(future, response):
