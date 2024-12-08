@@ -86,7 +86,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             else:
                 self.logger.error(f"Failed to reach waypoint {self.current_waypoint_index}")
                 return Status.FAILURE
-        
+
         return Status.RUNNING
 
     def send_next_waypoint(self):

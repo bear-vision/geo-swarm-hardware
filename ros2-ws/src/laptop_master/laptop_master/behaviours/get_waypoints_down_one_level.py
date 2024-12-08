@@ -3,7 +3,7 @@ from py_trees.common import Status
 from custom_interfaces.srv import PathPlannerUp
 import math
 
-class GetWaypointsUp(py_trees.behaviour.Behaviour):
+class GetWaypointsDownOneLevel(py_trees.behaviour.Behaviour):
     def __init__(self, behaviour_name, blackboard_waypoint_key):
         super().__init__(behaviour_name)
         self.waypoints = None
@@ -60,8 +60,8 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.z = float(or_z)
                 request.current_pose.orientation.w = float(or_w)
 
-                #try to go 8 meters up //TODO - change back to 8 when done testing 1 level
-                request.height_diff = 3.0
+                #try to go 1 meter down
+                request.height_diff = -1.0
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:

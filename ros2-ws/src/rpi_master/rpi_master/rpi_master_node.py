@@ -119,7 +119,7 @@ class RPiMasterNode(Node):
             if self.flight_state is not DroneFlightState.NAVIGATING and self.current_goal is None:
                 # TODO - perform some validation on the goal request (for example, we should never allow requesting below or above a certain height)
                 self.current_goal = rpi_master_utils.px4_to_ros_world_frame_transform(goal_request.waypoint)
-                self.get_logger().info(f"Transformed waypoint goal (PX4): {self.current_goal}")
+                # self.get_logger().info(f"Transformed waypoint goal (PX4): {self.current_goal}")
                 self.flight_state = DroneFlightState.NAVIGATING
 
                 self.get_logger().info(f"Received a good waypoint. Accepting waypoint request")
@@ -138,7 +138,7 @@ class RPiMasterNode(Node):
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint
         self.latest_waypoint = rpi_master_utils.px4_to_ros_world_frame_transform(goal_handle.request.waypoint)
-        self.get_logger().info(f"Processing accepted waypoint (PX4): {self.latest_waypoint}")
+        # self.get_logger().info(f"Processing accepted waypoint (PX4): {self.latest_waypoint}")
         # go to execute callback
         goal_handle.execute()
         # self.executor.create_task(self.execute_navigate_callback(goal_handle))

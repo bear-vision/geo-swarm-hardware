@@ -86,18 +86,21 @@ class PathPlannerServiceNode(Node):
         self.get_logger().info('Lets clean the paint...')
         return response
     
-    def generate_waypoints_going_up(self, request, response, heightDiff=1):
+    def generate_waypoints_going_up(self, request, response):
 
-        num_waypoints = request.num_waypoints
-        if num_waypoints <= 0:
-            #TODO - handle the case where we have an invalid number of waypoints. Setting to 5 for now
-            num_waypoints = 2
+        height_diff = request.height_diff
+
+        num_waypoints = request.num_waypoints + 1
+        if num_waypoints <= 1:
+            #TODO - handle the case where we have an invalid number of waypoints. Setting to 3 for now
+            num_waypoints = 3
 
         # response incude start and goal position
         
 
-        # Generate timestamps for the waypoints
-        t = np.linspace(0, 1, num_waypoints)
+        # Generate timestamps for the waypoints 
+        # We are skipping t = 0 because we should already be at that spot
+        t = np.linspace(0, 1, num_waypoints)[1:]
 
         # Current and target positions for x, y, z, and yaw angle
         curr_x = request.current_pose.position.x
@@ -105,7 +108,7 @@ class PathPlannerServiceNode(Node):
         curr_z = request.current_pose.position.z
         
         # Target position only differs in z since we want to just move to the next level of the tower
-        target_z = request.current_pose.position.z + heightDiff
+        target_z = request.current_pose.position.z + height_diff
 
         # extract
         curr_orientation = request.current_pose.orientation
