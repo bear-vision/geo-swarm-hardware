@@ -65,6 +65,8 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.y = float(or_y)
                 request.current_pose.orientation.z = float(or_z)
                 request.current_pose.orientation.w = float(or_w)
+
+                self.logger.info(f"Current drone pose: {(request.current_pose.position.x, request.current_pose.position.y, request.current_pose.position.z)}")
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:

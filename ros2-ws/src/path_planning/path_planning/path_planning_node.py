@@ -156,6 +156,7 @@ class PathPlannerServiceNode(Node):
         
 
         # Extract current and tower positions
+        self.get_logger().info(f"Request current pose: {request.current_pose}, request tower pose: {request.tower_pose}\n")
         curr_x = request.current_pose.position.x
         curr_y = request.current_pose.position.y
         curr_z = request.current_pose.position.z
@@ -170,7 +171,9 @@ class PathPlannerServiceNode(Node):
         # Initialize waypoints list
         waypoints = []
 
-        if np.isclose(current_radius, radius, atol=1e-3):
+        self.get_logger().info(f"Current radius: {current_radius}. Desired radius: {radius}\n")
+
+        if np.isclose(current_radius, radius, atol=0.2):
             # === First Scenario: Already on the Circle ===
             self.get_logger().info('Scenario 1: Starting on the circle.')
             # Generate time steps for the full trajectory
@@ -240,7 +243,7 @@ class PathPlannerServiceNode(Node):
         response.waypoints = waypoint_array
 
         # Log the scenario executed
-        if np.isclose(current_radius, radius, atol=1e-3):
+        if np.isclose(current_radius, radius, atol=0.2):
             self.get_logger().info('Circular trajectory complete for Scenario 1.')
         else:
             self.get_logger().info('Dynamic circular trajectory complete for Scenario 2.')

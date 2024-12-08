@@ -13,7 +13,9 @@ setup(
             package_name,
             f'{package_name}.*',
             f'{package_name}.behaviours',
-            f'{package_name}.behaviours.*'
+            f'{package_name}.behaviours.*',
+            f'{package_name}.decorators',
+            f'{package_name}.decorators.*'
         ]
     ),
     data_files=[

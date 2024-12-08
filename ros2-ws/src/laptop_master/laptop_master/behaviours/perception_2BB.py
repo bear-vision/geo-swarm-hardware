@@ -29,4 +29,5 @@ def perception_to_blackboard():
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched() # we care about most recent data, no need to ensure all messages were delivered
     )
     
+    
     return perception2BB

@@ -31,6 +31,7 @@ from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from rclpy.executors import MultiThreadedExecutor
 
+from laptop_master.decorators.repeat_until_condition import *
 
 import sys
  
@@ -74,11 +75,14 @@ def create_root() -> py_trees.behaviour.Behaviour:
     )
     move_up_sequence.add_children([get_waypoints_up, follow_waypoints_up])
 
+    move_up_oneshot = py_trees.decorators.OneShot("Move Up Oneshot", child = move_up_sequence, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
+
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
-    circle_tasks = py_trees.composites.Sequence(name="Circle Tower Tasks", memory=True)
+    # circle_tasks = py_trees.composites.Sequence(name="Circle Tower Tasks", memory=True)
     
-    check_height = py_trees.composites.Selector(name="Check Height", memory=False)
+    # check_height = py_trees.composites.Selector(name="Check Height", memory=False)
     land = py_trees.behaviours.Running(name="Success!") # TODO - idles now, need to implement land behaviour with service
+    land_oneshot = py_trees.decorators.OneShot("Land Oneshot", child = land, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
     
     move_down_sequence = py_trees.composites.Sequence(name="Move Down Sequence", memory=True)
     get_waypoints_down_one_level = GetWaypointsDownOneLevel(
@@ -89,22 +93,9 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Follow Waypoints Down",
         blackboard_waypoint_key="down"
     )
-    move_down_sequence.add_children([get_waypoints_down_one_level, follow_waypoints_down_one_level])
+
     
-    def drone_below_threshold_height(blackboard: py_trees.blackboard.Blackboard) -> bool:
-        height_threshold_ned = -1.5
-        if blackboard.drone.position.z >= height_threshold_ned:
-            return True
-        return False
-    
-    height_below_threshold = py_trees.decorators.EternalGuard(
-        name="Below Height?",
-        condition=drone_below_threshold_height,
-        blackboard_keys={"/drone/position/z"},
-        child=land
-    )
-    
-    check_height.add_children([height_below_threshold, move_down_sequence])
+    # check_height.add_children([height_below_threshold, move_down_sequence])
     
     #TODO - reintegrate going to the tower once Jannik implements the service
     # navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
@@ -119,7 +110,19 @@ def create_root() -> py_trees.behaviour.Behaviour:
     #     blackboard_waypoint_key="to_tower"
     # )
     # navigate_to_tower_sequence.add_children([get_waypoints_to_tower, follow_waypoints_to_tower])
+    def drone_below_threshold_height(blackboard: py_trees.blackboard.Blackboard) -> bool:
+        height_threshold_ned = -1.5
+        if blackboard.drone.position.z >= height_threshold_ned:
+            return True
+        return False
     
+    # check_height = py_trees.decorators.EternalGuard(
+    #     name="Below Height?",
+    #     condition=drone_below_threshold_height,
+    #     blackboard_keys={"/drone/position/z"},
+    #     child=land
+    # )
+
     circle_tower = py_trees.composites.Sequence(name="Circle Tower", memory=True)
     get_waypoints_around_tower = GetWaypointsTower(
         behaviour_name="Get Waypoints Around Tower",
@@ -131,11 +134,17 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Follow Waypoints Around Tower",
         blackboard_waypoint_key="around_tower"
     )
-    circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower])
+    circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
+
+    repeat_circle_until_below_threshold = RepeatUntilCondition(
+        name = "Repeat Circle until Below Threshold",
+        child = circle_tower,
+        condition_fn = drone_below_threshold_height,
+        blackboard_keys = ['/drone/position/z']
+        )
         
-    idle = py_trees.behaviours.Running(name="Success!")
+    # idle = py_trees.behaviours.Running(name="Success!")
     # tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
-    circle_tasks.add_children([circle_tower, check_height, idle])
 
     
 
@@ -150,7 +159,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
 
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
-    tasks.add_children([move_up_sequence, circle_tasks])
+    tasks.add_children([move_up_oneshot, repeat_circle_until_below_threshold, land_oneshot])
 
     root.add_children([gather_data, tasks])
     
@@ -191,7 +200,7 @@ def main(args=None):
     # tree.visitors.append(py_trees.visitors.DebugVisitor())
     # tree.tick_tock(period_ms=100.0) # 10 Hz
 
-    tree.tick_tock(period_ms=1000.0)
+    tree.tick_tock(period_ms=500.0)
     try:
         # executor.spin()
         rclpy.spin(tree.node)

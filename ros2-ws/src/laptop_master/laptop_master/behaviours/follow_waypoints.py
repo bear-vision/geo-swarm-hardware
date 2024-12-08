@@ -123,6 +123,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             self.logger.info("Cancelling current goal")
             self.goal_handle.cancel_goal_async()
         self.goal_handle = None
+        self.waypoints = None
             
             
 # TODO: maybe put this in a common library
