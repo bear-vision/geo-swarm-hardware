@@ -162,7 +162,7 @@ def main(args=None):
         sys.exit(1)
 
     # tree.visitors.append(py_trees.visitors.DebugVisitor())
-    tree.tick_tock(period_ms=1000.0)
+    tree.tick_tock(period_ms=100.0) # 10 Hz
 
     try:
         rclpy.spin(tree.node)
