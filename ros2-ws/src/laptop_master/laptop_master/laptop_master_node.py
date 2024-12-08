@@ -57,7 +57,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     
     check_height = py_trees.composites.Selector(name="Check Height", memory=False)
-    land = py_trees.behaviours.Running(name="Land!") # TODO - idles now, need to implement land behaviour with service
+    land = py_trees.behaviours.Running(name="Success!") # TODO - idles now, need to implement land behaviour with service
     move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
     get_waypoints_up = GetWaypointsUp(
         behaviour_name="Get Waypoints Up",
@@ -68,7 +68,23 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_waypoint_key="up"
     )
     move_up_sequence.add_children([get_waypoints_up, follow_waypoints_up])
-    check_height.add_children([move_up_sequence, land])
+    
+    def drone_above_threshold_height(blackboard: py_trees.blackboard.Blackboard) -> bool:
+        height_threshold_ned = -10
+        if blackboard.drone.position.z <= height_threshold_ned:
+            return True
+        return False
+    
+    height_above_threshold = py_trees.decorators.EternalGuard(
+        name="Above Height?",
+        condition=drone_above_threshold_height,
+        blackboard_keys={"/drone/position/z"},
+        child=land
+    )
+    
+    check_height.add_children([height_above_threshold, move_up_sequence])
+    
+    
     
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
     get_waypoints_to_tower = GetWaypointsTower(
@@ -96,7 +112,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     )
     circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower])
         
-    idle = py_trees.behaviours.Running(name="Success!")
+    # idle = py_trees.behaviours.Running(name="Success!")
     tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
     
 
