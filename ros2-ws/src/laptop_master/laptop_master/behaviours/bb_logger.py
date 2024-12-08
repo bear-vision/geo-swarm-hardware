@@ -1,3 +1,4 @@
+# this behaviour is a duplicate of 'dummy_blackboard_reader.py'
 import py_trees
 from py_trees.common import Status
 
@@ -19,7 +20,7 @@ class BBLogger(py_trees.behaviour.Behaviour):
         return
         
     def update(self) -> Status:
-        """Retrieve waypoints from blackboard and calls a ROS Action to nagivate to one waypoint at a time.
+        """To get the last drone pose on the blackboard.
 
         Returns:
             Status.FAILURE the blackboard isn't set up?
@@ -43,6 +44,6 @@ class BBLogger(py_trees.behaviour.Behaviour):
         """This is called whenever your node switches to a non running state (SUCCESS, FAILURE, or INVALID)
 
         Args:
-            new_status: stateus we terminate  the node with 
+            new_status: status we terminate the node with 
         """
         return
