@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Pose
-from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin, PathPlannerTower
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -23,7 +23,13 @@ class PathPlannerClient(Node):
         
         # self.send_request()
 
-        self.client = self.create_client(PathPlannerSpin, 'plan_path_spin')
+        # self.client = self.create_client(PathPlannerSpin, 'plan_path_spin')
+        # while not self.client.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info('Waiting for the service...')
+        
+        # self.send_request()
+
+        self.client = self.create_client(PathPlannerTower, 'plan_path_tower')
         while not self.client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for the service...')
         
@@ -32,7 +38,8 @@ class PathPlannerClient(Node):
     def send_request(self):
         # request = PathPlannerPaint.Request()
         # request = PathPlannerUp.Request()
-        request = PathPlannerSpin.Request()
+        # request = PathPlannerSpin.Request()
+        request = PathPlannerTower.Request()
         
         # Initialize start and goal poses
         start_pose = Pose()
@@ -50,6 +57,8 @@ class PathPlannerClient(Node):
         request.current_pose = start_pose
         # request.target_pose = goal_pose
         request.tower_pose = goal_pose
+        request.num_waypoints = 100
+        request.radius = 1.2
         
         # Send request
         self.future = self.client.call_async(request)
