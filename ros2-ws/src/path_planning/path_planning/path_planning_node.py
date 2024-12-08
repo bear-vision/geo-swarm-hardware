@@ -7,9 +7,7 @@ from scipy.interpolate import CubicSpline
 import numpy as np
 import math
 
-from custom_interfaces.srv import PathPlannerPaint
-from custom_interfaces.srv import PathPlannerUp
-from custom_interfaces.srv import PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin, PathPlannerTower
 
 class PathPlannerServiceNode(Node):
     def __init__(self):
@@ -20,10 +18,86 @@ class PathPlannerServiceNode(Node):
             PathPlannerPaint, 'plan_path_paint', self.generate_waypoints_towards_paint)
         
         self.plan_path_service = self.create_service(
+            PathPlannerTower, 'plan_path_tower', self.generate_waypoints_towards_tower)
+        
+        self.plan_path_service = self.create_service(
             PathPlannerUp, 'plan_path_up', self.generate_waypoints_going_up)
         
         self.plan_path_service = self.create_service(
             PathPlannerSpin, 'plan_path_spin', self.generate_waypoints_spin_around_tower)
+
+    def generate_waypoints_towards_tower(self, request, response):
+        num_waypoints = request.num_waypoints
+        if num_waypoints <= 0:
+            num_waypoints = 10
+
+        # Extract current and target positions
+        curr_x = request.current_pose.position.x
+        curr_y = request.current_pose.position.y
+        curr_z = request.current_pose.position.z
+
+        tower_x = request.tower_pose.position.x
+        tower_y = request.tower_pose.position.y
+        tower_z = request.current_pose.position.z
+
+        # Circle properties (radius and number of points)
+        radius = request.radius
+        circle_num_points = 1000
+
+        # Generate circle waypoints around the tower
+        circle_waypoints = [
+            (
+                tower_x + radius * math.cos(2 * math.pi * i / circle_num_points),
+                tower_y + radius * math.sin(2 * math.pi * i / circle_num_points)
+            )
+            for i in range(circle_num_points)
+        ]
+
+        # Find the closest circle waypoint to the current position
+        closest_waypoint = min(
+            circle_waypoints,
+            key=lambda wp: math.sqrt((wp[0] - curr_x) ** 2 + (wp[1] - curr_y) ** 2)
+        )
+        closest_x, closest_y = closest_waypoint
+
+        # Generate timestamps for the waypoints
+        t = np.linspace(0, 1, num_waypoints)
+
+        # Use cubic splines to interpolate between current and closest circle position
+        start_velocity = 0
+        end_velocity = 0
+        x_spline = CubicSpline([0, 1], [curr_x, closest_x], bc_type=((1, start_velocity), (1, end_velocity)))
+        y_spline = CubicSpline([0, 1], [curr_y, closest_y], bc_type=((1, start_velocity), (1, end_velocity)))
+        z_spline = CubicSpline([0, 1], [curr_z, tower_z], bc_type=((1, start_velocity), (1, end_velocity)))
+
+        # Generate waypoints
+        waypoints = []
+        for ti in t:
+            x = x_spline(ti)
+            y = y_spline(ti)
+            z = z_spline(ti)
+
+            # Calculate yaw to face the tower
+            yaw = math.atan2(tower_y - y, tower_x - x)
+            quaternion = yaw_to_quaternion(yaw)
+
+            # Create a Pose message for each waypoint
+            pose = Pose()
+            pose.position.x = float(x)
+            pose.position.y = float(y)
+            pose.position.z = float(z)
+            pose.orientation = quaternion
+            waypoints.append(pose)
+
+        # Populate the response with the waypoints
+        waypoint_array = PoseArray()
+        waypoint_array.poses = waypoints
+        response.waypoints = waypoint_array
+
+        # Log progress
+        self.get_logger().info('Waypoints generated and sent via service.')
+        self.get_logger().info('Lets go to the tower...')
+        return response
 
     def generate_waypoints_towards_paint(self, request, response):
         num_waypoints = request.num_waypoints
