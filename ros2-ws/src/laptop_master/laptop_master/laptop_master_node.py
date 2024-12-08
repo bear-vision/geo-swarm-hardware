@@ -113,7 +113,9 @@ def create_root() -> py_trees.behaviour.Behaviour:
     circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower])
         
     # idle = py_trees.behaviours.Running(name="Success!")
-    tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
+    # tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
+    tasks.add_children([check_height, circle_tower])
+
     
 
     # get_waypoints_around_tower = GetWaypointsTower(
