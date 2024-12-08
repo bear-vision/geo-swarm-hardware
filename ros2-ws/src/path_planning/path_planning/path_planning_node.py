@@ -140,7 +140,7 @@ class PathPlannerServiceNode(Node):
         self.get_logger().info('We are going up...')
         return response
     
-    def generate_waypoints_spin_around_tower(self, request, response, radius=0.5, transition_fraction=0.2):
+    def generate_waypoints_spin_around_tower(self, request, response, radius=1.2, transition_fraction=0.2):
 
         num_waypoints = request.num_waypoints
         if num_waypoints <= 0:
