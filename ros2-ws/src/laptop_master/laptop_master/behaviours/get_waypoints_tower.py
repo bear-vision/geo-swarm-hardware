@@ -59,7 +59,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
             if (self.blackboard.drone.valid.xy_valid and self.blackboard.drone.valid.z_valid):
                 request.current_pose.position.x = self.blackboard.drone.position.y
                 request.current_pose.position.y = self.blackboard.drone.position.x
-                request.current_pose.position.z = -self.blackboard.drone.position.z
+                request.current_pose.position.z = max(-self.blackboard.drone.position.z, 0.0)
                 or_x, or_y, or_z, or_w = yaw_to_quaternion(self.blackboard.drone.orientation.yaw)
                 request.current_pose.orientation.x = float(or_x)
                 request.current_pose.orientation.y = float(or_y)

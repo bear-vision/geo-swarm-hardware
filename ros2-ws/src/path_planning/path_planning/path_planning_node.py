@@ -91,7 +91,7 @@ class PathPlannerServiceNode(Node):
         num_waypoints = request.num_waypoints
         if num_waypoints <= 0:
             #TODO - handle the case where we have an invalid number of waypoints. Setting to 5 for now
-            num_waypoints = 5
+            num_waypoints = 2
 
         # response incude start and goal position
         
@@ -140,12 +140,17 @@ class PathPlannerServiceNode(Node):
         self.get_logger().info('We are going up...')
         return response
     
-    def generate_waypoints_spin_around_tower(self, request, response, radius=1.2, transition_fraction=0.2):
+    def generate_waypoints_spin_around_tower(self, request, response, transition_fraction=0.2):
 
         num_waypoints = request.num_waypoints
+        radius = request.radius
         if num_waypoints <= 0:
             #TODO - handle the case where we have an invalid number of waypoints. Setting to 25 for now
             num_waypoints = 25
+        
+        #TODO - handle bad radius. setting to have a minimum r for now
+        radius = max(radius, 1.8)
+        
 
         # Extract current and tower positions
         curr_x = request.current_pose.position.x

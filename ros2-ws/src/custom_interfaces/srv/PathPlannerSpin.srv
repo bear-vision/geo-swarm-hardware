@@ -1,5 +1,6 @@
 geometry_msgs/Pose current_pose # current drone pose in world frame as ROS2 Pose object
 geometry_msgs/Pose tower_pose # current tower pose in world frame observed by camera as ROS2 Pose object
 int32 num_waypoints # desired number of waypoints.
+float64 radius # desired radius of circular path around tower (m)
 ---
 geometry_msgs/PoseArray waypoints # array of all waypoint poses which lead to desired destinations in world coordinates as ROS2 PoseArray object
