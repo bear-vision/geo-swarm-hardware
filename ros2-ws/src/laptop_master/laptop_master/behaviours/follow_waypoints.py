@@ -72,19 +72,19 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         
         # still waiting for result
         if not self._get_result_future:
-            self.logger.info(f"Still waiting for waypoint #{self.current_waypoint_index} of {len(self.waypoints)}")
+            self.logger.info(f"Still waiting for waypoint #{self.current_waypoint_index + 1} of {len(self.waypoints)}")
             return Status.RUNNING
         
         if self.action_result is not None:
             if self.action_result.success:
-                self.logger.info(f"Reached waypoint #{self.current_waypoint_index} of {len(self.waypoints)}")
+                self.logger.info(f"Reached waypoint #{self.current_waypoint_index + 1} of {len(self.waypoints)}")
                 self.current_waypoint_index += 1
                 self._send_goal_future = None
                 self._get_result_future = None
                 self.action_result = None
                 return Status.RUNNING
             else:
-                self.logger.error(f"Failed to reach waypoint {self.current_waypoint_index}")
+                self.logger.error(f"Failed to reach waypoint {self.current_waypoint_index + 1}")
                 return Status.FAILURE
 
         return Status.RUNNING
