@@ -16,7 +16,7 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.goal_handle = None
         self.bb_waypoints_key = blackboard_waypoint_key
         self.blackboard = self.attach_blackboard_client() 
-        self.blackboard.register_key(self.bb_waypoints_key, access=py_trees.common.Access.READ)
+        self.blackboard.register_key("waypoints", access=py_trees.common.Access.READ)
 
         
     def setup(self, **kwargs) -> None:
@@ -51,8 +51,14 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             Status.RUNNING still traversing thru given waypoints
         """
         if self.waypoints is None:
-            self.logger.info("Retrieved waypoints from blackboard")
-            self.waypoints = self.blackboard.waypoints.to_tower.poses
+            self.logger.info(f"Retrieving from blackboard: waypoints[{self.bb_waypoints_key}]")
+            waypoints_dict = getattr(self.blackboard, 'waypoints', {})
+            waypoints_dict_value = waypoints_dict.get(self.bb_waypoints_key)
+            if not waypoints_dict_value:
+                self.logger.error(f"waypoints[{self.bb_waypoints_key}] not found")
+                return Status.FAILURE
+            self.waypoints = waypoints_dict_value.poses
+            
             return Status.RUNNING
         
         if self.current_waypoint_index >= len(self.waypoints):

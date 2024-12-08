@@ -23,6 +23,7 @@ from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
+from laptop_master.behaviours.get_waypoints_up import GetWaypointsUp
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
@@ -55,16 +56,30 @@ def create_root() -> py_trees.behaviour.Behaviour:
     
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
     
+    check_height = py_trees.composites.Selector(name="Check Height", memory=False)
+    land = py_trees.behaviours.Running(name="Land!") # TODO - idles now, need to implement land behaviour with service
+    move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
+    get_waypoints_up = GetWaypointsUp(
+        behaviour_name="Get Waypoints Up",
+        blackboard_waypoint_key="up"
+    )
+    follow_waypoints_up = FollowWaypoints(
+        behaviour_name="Follow Waypoints Up",
+        blackboard_waypoint_key="up"
+    )
+    move_up_sequence.add_children([get_waypoints_up, follow_waypoints_up])
+    check_height.add_children([move_up_sequence, land])
+    
     navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
     get_waypoints_to_tower = GetWaypointsTower(
         behaviour_name="Get Waypoints To Tower", 
         service_type=PathPlannerSpin, 
         service_name='plan_path_spin',
-        blackboard_waypoint_key="waypoints/to_tower"
+        blackboard_waypoint_key="to_tower"
     )
     follow_waypoints_to_tower = FollowWaypoints(
         behaviour_name="Follow Waypoints To Tower",
-        blackboard_waypoint_key="waypoints/to_tower"
+        blackboard_waypoint_key="to_tower"
     )
     navigate_to_tower_sequence.add_children([get_waypoints_to_tower, follow_waypoints_to_tower])
     
@@ -73,16 +88,16 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Get Waypoints Around Tower",
         service_type=PathPlannerSpin,
         service_name="plan_path_spin",
-        blackboard_waypoint_key="waypoints/around_tower"
+        blackboard_waypoint_key="around_tower"
     )
     follow_waypoints_around_tower=FollowWaypoints(
         behaviour_name="Follow Waypoints Around Tower",
-        blackboard_waypoint_key="waypoints/around_tower"
+        blackboard_waypoint_key="around_tower"
     )
     circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower])
         
     idle = py_trees.behaviours.Running(name="Success!")
-    tasks.add_children([navigate_to_tower_sequence, circle_tower, idle])
+    tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
     
 
     # get_waypoints_around_tower = GetWaypointsTower(
