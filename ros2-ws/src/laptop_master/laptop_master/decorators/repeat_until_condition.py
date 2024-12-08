@@ -28,9 +28,9 @@ class RepeatUntilCondition(py_trees.decorators.Decorator):
         if status == py_trees.common.Status.SUCCESS:
             if self.condition_fn():
                 return py_trees.common.Status.SUCCESS
-
-            self.decorated.stop(py_trees.common.Status.INVALID)
-            self.decorated.initialise()
-            return py_trees.common.Status.RUNNING
+            else:
+                # self.decorated.stop(py_trees.common.Status.INVALID)
+                self.decorated.initialise()
+                return py_trees.common.Status.RUNNING
 
         return status
