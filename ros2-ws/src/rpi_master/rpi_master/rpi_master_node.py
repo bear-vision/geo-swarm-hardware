@@ -182,6 +182,9 @@ class RPiMasterNode(Node):
             result = DroneNavigateToWaypoint.Result()
 
             while position_error > self.POSITION_CONTROL_MAX_POSITION_ERROR or orientation_error > self.POSITION_CONTROL_MAX_ORIENTATION_ERROR:
+                # Check if we have gone into land mode. If so, something has gone wrong (either we asked to land outside this callback, or the drone wants to land itself)
+                if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_AUTO_LAND:
+                    raise Exception("Drone is in land mode. Exiting navigation loop.")
 
                 # check if cancel request has come through
                 if goal_handle.is_cancel_requested:
@@ -229,7 +232,6 @@ class RPiMasterNode(Node):
         except Exception as e:
             # handle errors/exceptions - TODO define desired behavior.
             self.get_logger().info(f"Error encountered in executing navigation callback: {traceback.format_exc()}")
-
             result = DroneNavigateToWaypoint.Result()
             result.success = False
             result.message = f"Navigate to waypoint action encountered an error: {e}"
@@ -330,19 +332,8 @@ class RPiMasterNode(Node):
         #send command for land mode
         self.land()
 
-        num_checks = 20
-        check_rate = self.create_rate(1.0 / num_checks, self.get_clock())
-        checks = 0
-        while checks < num_checks:
-            #perform check
-            if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_AUTO_LAND:
-                response.success = True
-                response.message = "Succesfully entered land mode."
-                return response
-            checks += 1
-
-        reponse.success = False
-        response.message = "Did not enter land mode within 1 second of sending land vehicle command."
+        response.success = True
+        response.message = "Published land mode message."
         return response
 
     def rpi_sprayer_on_callback(self, request, response):
