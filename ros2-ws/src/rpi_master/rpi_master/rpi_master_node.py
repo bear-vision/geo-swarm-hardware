@@ -74,7 +74,6 @@ class RPiMasterNode(Node):
         self.flight_state_lock = threading.Lock()
 
         # Constants
-        self.MAX_HEIGHT = -1.0 # max altitude allowed, can adjust this as necessary
         self.POSITION_CONTROL_MAX_POSITION_ERROR = 0.3 # max allowable error in meters (euclidean dist). TODO: tune
         self.POSITION_CONTROL_MAX_ORIENTATION_ERROR = 0.2 # max allowable error in radians (manhattan dist). TODO: tune
 
