@@ -23,6 +23,7 @@ from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
 from laptop_master.behaviours.bb_logger import *
+from laptop_master.behaviours.land_drone import *
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
 from laptop_master.behaviours.get_waypoints_up import GetWaypointsUp
 from laptop_master.behaviours.get_waypoints_down_one_level import GetWaypointsDownOneLevel
@@ -81,8 +82,9 @@ def create_root() -> py_trees.behaviour.Behaviour:
     # circle_tasks = py_trees.composites.Sequence(name="Circle Tower Tasks", memory=True)
     
     # check_height = py_trees.composites.Selector(name="Check Height", memory=False)
-    land = py_trees.behaviours.Running(name="Success!") # TODO - idles now, need to implement land behaviour with service
-    land_oneshot = py_trees.decorators.OneShot("Land Oneshot", child = land, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
+    # land = py_trees.behaviours.Running(name="Success!") # TODO - idles now, need to implement land behaviour with service
+    land_drone_behavior = LandDrone(behaviour_name = 'Land Drone')
+    land_oneshot = py_trees.decorators.OneShot("Land Oneshot", child = land_drone_behavior, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
     
     move_down_sequence = py_trees.composites.Sequence(name="Move Down Sequence", memory=True)
     get_waypoints_down_one_level = GetWaypointsDownOneLevel(
@@ -143,7 +145,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_keys = ['/drone/position/z']
         )
         
-    # idle = py_trees.behaviours.Running(name="Success!")
+    idle = py_trees.behaviours.Running(name="Success!")
     # tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
 
     
@@ -159,7 +161,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
 
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
-    tasks.add_children([move_up_oneshot, repeat_circle_until_below_threshold, land_oneshot])
+    tasks.add_children([move_up_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
 
     root.add_children([gather_data, tasks])
     

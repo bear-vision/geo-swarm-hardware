@@ -61,7 +61,7 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.w = float(or_w)
 
                 #try to go 8 meters up //TODO - change back to 8 when done testing 1 level
-                request.height_diff = 5.0
+                request.height_diff = 3.0
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:
