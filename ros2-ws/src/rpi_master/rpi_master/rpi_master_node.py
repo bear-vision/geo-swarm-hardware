@@ -103,6 +103,11 @@ class RPiMasterNode(Node):
 
         self.pose_publisher = self.create_publisher(Pose, '/rpi_master/pose', qos_profile)
 
+
+        #Set drone's current position to home
+        self.publish_home_position_command()
+        self.get_logger().info(f"Finish Intializing RPi Master Node.")
+
     def destroy(self):
         self.waypoint_action_server.destroy()
         super().destroy_node()
@@ -414,6 +419,13 @@ class RPiMasterNode(Node):
         self.publish_vehicle_command(
             VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 4.0, 3.0)
         self.get_logger().info("Switching to hold mode")
+
+    def publish_home_position_command(self):
+        """Tells the drone to set the current position to home position."""
+        self.publish_vehicle_command(
+            VehicleCommand.VEHICLE_CMD_DO_SET_HOME, 1.0
+        )
+        self.get_logger().info("Setting current drone position to home position.")
 
     def publish_offboard_control_mode(self):
         '''
