@@ -5,7 +5,7 @@ For testing
 import rclpy
 from rclpy.node import Node
 from time import sleep
-from geometry_msgs.msg import Point, Quaternion, Pose
+from geometry_msgs.msg import Point, Quaternion, Pose, PoseArray
 from px4_msgs.msg import VehicleLocalPosition, VehicleAttitude
 from custom_interfaces.msg import PerceptionStuff
 from rpi_master import rpi_master_utils
@@ -41,25 +41,45 @@ class DummyPubNode(Node):
         self.timer = self.create_timer(0.2, self.timer_callback) # 5 Hz
         
         self.i = 0.0
-        
-    def timer_callback(self):
-        
+    
+    def create_perception_msg(self,x ,y, z):
         perception_msg = PerceptionStuff()
+
         perception_msg.detected_tower = True
-        perception_msg.tower_position.position.x = 10.0
-        perception_msg.tower_position.position.y = 10.0
-        perception_msg.tower_position.position.z = 10.0
-        perception_msg.tower_position.orientation.x = 0.0
-        perception_msg.tower_position.orientation.y = 0.0
-        perception_msg.tower_position.orientation.z = 0.0
-        perception_msg.tower_position.orientation.w = 1.0
+
+        perception_msg.tower_position = Pose(position = Point(x = 10.0, y = 10.0, z = 10.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
+
+        perception_msg.detected_dirty_patch = True
+
+        perception_msg.num_dirty_patches = 1
+
+        dirty_patch_positions = PoseArray()
+        dirty_patch_positions.poses = [Pose(position = Point(x = x, y = y, z = z), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))]
+        perception_msg.dirty_patch_position = dirty_patch_positions
+
+        perception_msg.dirty_patches_radii = [0.5]
+
+
+
+        return perception_msg
+    
+    def timer_callback(self):
 
         #TODO - If self.drone_pose is close enough to a paint blob in self.paint_locations, then set relevant fields in Perception msg
         # (i think a good starting radius to test is 1.8 meters - we can change it later)
+        drone_pos = self.update_vehicle_local_pose()
+        if drone_pos:
+           for paint_blob in self.paint_locations:
+                if rpi_master_utils.is_within_radius(drone_pos, paint_blob, 1.8):
+                    percpetion_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z) 
+                    percpetion_msg.detected_paint_blob = True
+                    percpetion_msg.paint_blob_position = paint_blob
+                    self.perception_pub.publish(percpetion_msg)
+                    break
 
 
-        self.perception_pub.publish(perception_msg)
-        self.get_logger().debug(f"Published tower: (x=10.0, y=10.0, z=10.0)")
+        self.perception_pub.publish(percpetion_msg)
+        self.get_logger().debug(f"Published paint blob: {percpetion_msg}")
     
     def vehicle_local_position_callback(self, vehicle_local_position):
         """Update vehicle local position."""
