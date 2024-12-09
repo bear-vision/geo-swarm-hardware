@@ -69,7 +69,8 @@ def create_root() -> py_trees.behaviour.Behaviour:
     move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
     get_waypoints_up = GetWaypointsUp(
         behaviour_name="Get Waypoints Up",
-        blackboard_waypoint_key="up"
+        blackboard_waypoint_key="up",
+        height_diff = 10.0
     )
     follow_waypoints_up = FollowWaypoints(
         behaviour_name="Follow Waypoints Up",
@@ -103,7 +104,8 @@ def create_root() -> py_trees.behaviour.Behaviour:
     move_down_sequence = py_trees.composites.Sequence(name="Move Down Sequence", memory=True)
     get_waypoints_down_one_level = GetWaypointsDownOneLevel(
         behaviour_name="Get Waypoints Down",
-        blackboard_waypoint_key="down"
+        blackboard_waypoint_key="down",
+        height_diff = -1.0
     )
     follow_waypoints_down_one_level = FollowWaypoints(
         behaviour_name="Follow Waypoints Down",

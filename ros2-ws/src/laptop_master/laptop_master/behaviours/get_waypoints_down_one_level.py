@@ -4,7 +4,7 @@ from custom_interfaces.srv import PathPlannerUp
 import math
 
 class GetWaypointsDownOneLevel(py_trees.behaviour.Behaviour):
-    def __init__(self, behaviour_name, blackboard_waypoint_key):
+    def __init__(self, behaviour_name, blackboard_waypoint_key, height_diff: float = -0.5):
         super().__init__(behaviour_name)
         self.waypoints = None
         self.waypoint_client = None
@@ -12,6 +12,7 @@ class GetWaypointsDownOneLevel(py_trees.behaviour.Behaviour):
         self.service_name = "plan_path_up"
         self.service_type = PathPlannerUp
         self.blackboard_waypoint_key = blackboard_waypoint_key
+        self.height_diff = height_diff
         
         # Blackboard access
         self.blackboard = self.attach_blackboard_client() 
@@ -60,8 +61,7 @@ class GetWaypointsDownOneLevel(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.z = float(or_z)
                 request.current_pose.orientation.w = float(or_w)
 
-                #try to go 1 meter down
-                request.height_diff = -1.0
+                request.height_diff = self.height_diff
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:
