@@ -19,11 +19,6 @@ import asyncio
 
 # Lots of code in here is re-used from https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard_py/offboard_control.py     
 
-# TODO:
-# (IMPORTANT) implement MultiThreadedExecutor and use threading.lock to handle issues with resource sharing and concurrency
-# Consider adding another action just for landing safely
-
-
 class DroneFlightState(Enum):
     GROUNDED = 0 #idle, on the ground
     NAVIGATING = 1 #currently trying to fly towards a waypoint
@@ -243,6 +238,10 @@ class RPiMasterNode(Node):
             # unset current goal/waypoint.
             self.current_goal = None
 
+            # switch to hold mode - this is completely unnecessary so I've commented it out for now
+            # self.latest_waypoint = None
+            # self.engage_hold_mode()
+
         return result
 
         
@@ -409,6 +408,12 @@ class RPiMasterNode(Node):
         self.publish_vehicle_command(
             VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
         self.get_logger().info("Switching to offboard mode")
+    
+    def engage_hold_mode(self):
+        """Switch to hold mode."""
+        self.publish_vehicle_command(
+            VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 4.0, 3.0)
+        self.get_logger().info("Switching to hold mode")
 
     def publish_offboard_control_mode(self):
         '''
