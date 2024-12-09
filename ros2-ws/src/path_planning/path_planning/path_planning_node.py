@@ -30,6 +30,8 @@ class PathPlannerServiceNode(Node):
         num_waypoints = request.num_waypoints
         if num_waypoints <= 0:
             num_waypoints = 10
+        
+        
 
         # Extract current and target positions
         curr_x = request.current_pose.position.x
@@ -41,7 +43,8 @@ class PathPlannerServiceNode(Node):
         tower_z = request.current_pose.position.z
 
         # Circle properties (radius and number of points)
-        radius = request.radius
+        #TODO - handle bad radius. setting to have a minimum r for now
+        radius = max(request.radius, 1.8)
         circle_num_points = 1000
 
         # Generate circle waypoints around the tower
@@ -173,7 +176,6 @@ class PathPlannerServiceNode(Node):
         
 
         # Generate timestamps for the waypoints 
-        # We are skipping t = 0 because we should already be at that spot
         t = np.linspace(0, 1, num_waypoints)[1:]
 
         # Current and target positions for x, y, z, and yaw angle

@@ -18,12 +18,13 @@ import py_trees
 import py_trees_ros
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition
 from std_srvs.srv import Trigger
-from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin
+from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSpin, PathPlannerTower
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
 from laptop_master.behaviours.bb_logger import *
 from laptop_master.behaviours.land_drone import *
+from laptop_master.behaviours.get_waypoints_circle import GetWaypointsCircle
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
 from laptop_master.behaviours.get_waypoints_up import GetWaypointsUp
 from laptop_master.behaviours.get_waypoints_down_one_level import GetWaypointsDownOneLevel
@@ -78,11 +79,24 @@ def create_root() -> py_trees.behaviour.Behaviour:
 
     move_up_oneshot = py_trees.decorators.OneShot("Move Up Oneshot", child = move_up_sequence, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
 
+    approach_tower_sequence = py_trees.composites.Sequence(name="Approach Tower", memory=True)
+    get_waypoints_approach_tower = GetWaypointsTower(
+        behaviour_name="Get Waypoints to Approach Tower",
+        service_type=PathPlannerTower,
+        service_name="plan_path_tower",
+        blackboard_waypoint_key="approach_tower"
+    )
+
+    follow_waypoints_approach_tower=FollowWaypoints(
+        behaviour_name="Follow Waypoints to Approach Tower",
+        blackboard_waypoint_key="approach_tower"
+    )
+    approach_tower_sequence.add_children([get_waypoints_approach_tower, follow_waypoints_approach_tower])
+
+    approach_tower_oneshot = py_trees.decorators.OneShot("Approach Tower Oneshot", child = approach_tower_sequence, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
+
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
-    # circle_tasks = py_trees.composites.Sequence(name="Circle Tower Tasks", memory=True)
     
-    # check_height = py_trees.composites.Selector(name="Check Height", memory=False)
-    # land = py_trees.behaviours.Running(name="Success!") # TODO - idles now, need to implement land behaviour with service
     land_drone_behavior = LandDrone(behaviour_name = 'Land Drone')
     land_oneshot = py_trees.decorators.OneShot("Land Oneshot", child = land_drone_behavior, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
     
@@ -97,37 +111,15 @@ def create_root() -> py_trees.behaviour.Behaviour:
     )
 
     
-    # check_height.add_children([height_below_threshold, move_down_sequence])
-    
-    #TODO - reintegrate going to the tower once Jannik implements the service
-    # navigate_to_tower_sequence = py_trees.composites.Sequence(name="Navigate To Tower", memory=True)
-    # get_waypoints_to_tower = GetWaypointsTower(
-    #     behaviour_name="Get Waypoints To Tower", 
-    #     service_type=PathPlannerSpin, 
-    #     service_name='plan_path_spin',
-    #     blackboard_waypoint_key="to_tower"
-    # )
-    # follow_waypoints_to_tower = FollowWaypoints(
-    #     behaviour_name="Follow Waypoints To Tower",
-    #     blackboard_waypoint_key="to_tower"
-    # )
-    # navigate_to_tower_sequence.add_children([get_waypoints_to_tower, follow_waypoints_to_tower])
     def drone_below_threshold_height(blackboard: py_trees.blackboard.Blackboard) -> bool:
         height_threshold_ned = -1.5
         if blackboard.drone.position.z >= height_threshold_ned:
             return True
         return False
-    
-    # check_height = py_trees.decorators.EternalGuard(
-    #     name="Below Height?",
-    #     condition=drone_below_threshold_height,
-    #     blackboard_keys={"/drone/position/z"},
-    #     child=land
-    # )
 
     circle_tower = py_trees.composites.Sequence(name="Circle Tower", memory=True)
-    get_waypoints_around_tower = GetWaypointsTower(
-        behaviour_name="Get Waypoints Around Tower",
+    get_waypoints_around_tower = GetWaypointsCircle(
+        behaviour_name="Get Waypoints for Circling Tower",
         service_type=PathPlannerSpin,
         service_name="plan_path_spin",
         blackboard_waypoint_key="around_tower"
@@ -146,22 +138,13 @@ def create_root() -> py_trees.behaviour.Behaviour:
         )
         
     idle = py_trees.behaviours.Running(name="Success!")
-    # tasks.add_children([check_height, navigate_to_tower_sequence, circle_tower, idle])
 
-    
-
-    # get_waypoints_around_tower = GetWaypointsTower(
-    #     behaviour_name="Get Waypoints Around Tower", 
-    #     service_type=PathPlannerSpin, 
-    #     service_name='plan_path_spin',
-    #     blackboard_waypoint_key="waypoints/around_tower"
-    # ) 
     # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
     # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
 
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
-    tasks.add_children([move_up_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
+    tasks.add_children([move_up_oneshot, approach_tower_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
 
     root.add_children([gather_data, tasks])
     
