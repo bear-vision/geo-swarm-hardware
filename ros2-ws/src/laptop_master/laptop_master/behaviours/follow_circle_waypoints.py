@@ -6,6 +6,7 @@ class FollowCircleWaypoints(FollowWaypoints):
     def __init__(self, behaviour_name, blackboard_waypoint_key):
         super().__init__(behaviour_name, blackboard_waypoint_key)
         self.blackboard.register_key("finished_circle_layer", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("finished_circle_layer", access=py_trees.common.Access.WRITE)
         
     def setup(self, **kwargs):
         return super().setup(**kwargs)

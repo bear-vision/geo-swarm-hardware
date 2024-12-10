@@ -71,7 +71,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     get_waypoints_up = GetWaypointsUp(
         behaviour_name="Get Waypoints Up",
         blackboard_waypoint_key="up",
-        height_diff = 10.0
+        height_diff = 2.0
     )
     follow_waypoints_up = FollowWaypoints(
         behaviour_name="Follow Waypoints Up",
@@ -181,7 +181,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_keys= ["finished_circle_layer"]
     )
     
-    circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected])
+    circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected, get_waypoints_down_one_level, follow_waypoints_down_one_level])
     
     
     idle = py_trees.behaviours.Running(name="Success!")

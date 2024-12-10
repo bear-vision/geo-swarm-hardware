@@ -24,7 +24,7 @@ class DummyPubNode(Node):
         )
 
         #paint locations in ROS2 frame as defined in the PX4 autopilot tower model file
-        self.paint_locations = [Point(x = 0.475, y = 0.0, z = 1.0), Point(x = -0.475, y = 0.0, z = 2.0), Point(x = 0.0, y = 0.475, z = 6.0), Point(x = 0.0, y = -0.475, z = 9.0)]
+        self.paint_locations = [Point(x = -9.525, y = 10.0, z = 1.0), Point(x = -9.525, y = 10.0, z = 2.0), Point(x = 10.0, y = 10.475, z = 6.0), Point(x = 10.0, y = -9.525, z = 9.0)]
         
         # stores local position in PX4 frame
         self.drone_posn = VehicleLocalPosition()
@@ -73,11 +73,11 @@ class DummyPubNode(Node):
         drone_pos = self.update_vehicle_local_pose()
         if drone_pos:
            for paint_blob in self.paint_locations:
-                if self.is_within_radius(drone_pos.position, paint_blob, 1.8):
+                if self.is_within_radius(drone_pos.position, paint_blob, 2.0):
                     perception_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z) 
                     
                     self.perception_pub.publish(perception_msg)
-                    self.get_logger().debug(f"Published paint blob: {perception_msg}")
+                    self.get_logger().info(f"Published paint blob: {perception_msg}")
                     return
 
         perception_msg = PerceptionStuff()
