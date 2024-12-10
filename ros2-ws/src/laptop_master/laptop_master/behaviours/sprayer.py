@@ -30,8 +30,8 @@ class SprayerBehaviour(py_trees.behaviour.Behaviour):
         
         # Set up service client
         self.sprayer_client = self.node.create_client(self.service_type, self.service_name)
-        while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for the sprayer service...')     
+        while not self.sprayer_client.wait_for_service(timeout_sec=1.0):
+            self.logger.info('Waiting for the sprayer service...')     
             
             
     def initialise(self) -> None:
