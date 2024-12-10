@@ -128,7 +128,7 @@ class OffboardControl(Node):
             
         if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
             if self.state == 0:
-                self.publish_position_setpoint(2.75, 0.09, self.takeoff_height)
+                self.publish_position_setpoint(1.85, 0.0, self.takeoff_height)
 
                 if self.vehicle_local_position.z <= self.takeoff_height:
                     self.get_logger().info("Takeoff successful")
