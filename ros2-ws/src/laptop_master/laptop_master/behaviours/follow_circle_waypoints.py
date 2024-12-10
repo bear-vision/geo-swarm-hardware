@@ -1,4 +1,4 @@
-from follow_waypoints import FollowWaypoints
+from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 import py_trees
 from py_trees.common import Status
 
