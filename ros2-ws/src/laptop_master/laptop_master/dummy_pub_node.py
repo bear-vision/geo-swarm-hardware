@@ -10,7 +10,7 @@ from px4_msgs.msg import VehicleLocalPosition, VehicleAttitude
 from custom_interfaces.msg import PerceptionStuff
 from rpi_master import rpi_master_utils
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-
+import numpy as np
 
 class DummyPubNode(Node):
     def __init__(self):
@@ -55,7 +55,7 @@ class DummyPubNode(Node):
 
         dirty_patch_positions = PoseArray()
         dirty_patch_positions.poses = [Pose(position = Point(x = x, y = y, z = z), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))]
-        perception_msg.dirty_patch_position = dirty_patch_positions
+        perception_msg.dirty_patches = dirty_patch_positions
 
         perception_msg.dirty_patches_radii = [0.5]
 
@@ -63,6 +63,9 @@ class DummyPubNode(Node):
 
         return perception_msg
     
+    def is_within_radius(self, point_a, point_b, radius):
+        return np.linalg.norm(np.array([point_a.x, point_a.y, point_a.z]) - np.array([point_b.x, point_b.y, point_b.z])) <= radius
+
     def timer_callback(self):
 
         #TODO - If self.drone_pose is close enough to a paint blob in self.paint_locations, then set relevant fields in Perception msg
@@ -70,16 +73,17 @@ class DummyPubNode(Node):
         drone_pos = self.update_vehicle_local_pose()
         if drone_pos:
            for paint_blob in self.paint_locations:
-                if rpi_master_utils.is_within_radius(drone_pos, paint_blob, 1.8):
-                    percpetion_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z) 
-                    percpetion_msg.detected_paint_blob = True
-                    percpetion_msg.paint_blob_position = paint_blob
-                    self.perception_pub.publish(percpetion_msg)
-                    break
+                if self.is_within_radius(drone_pos.position, paint_blob, 1.8):
+                    perception_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z) 
+                    
+                    self.perception_pub.publish(perception_msg)
+                    self.get_logger().debug(f"Published paint blob: {perception_msg}")
+                    return
 
-
-        self.perception_pub.publish(percpetion_msg)
-        self.get_logger().debug(f"Published paint blob: {percpetion_msg}")
+        perception_msg = PerceptionStuff()
+        perception_msg.detected_tower = True
+        perception_msg.tower_position = Pose(position = Point(x = 10.0, y = 10.0, z = 10.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
+        self.perception_pub.publish(perception_msg)
     
     def vehicle_local_position_callback(self, vehicle_local_position):
         """Update vehicle local position."""
