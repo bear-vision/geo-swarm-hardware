@@ -24,6 +24,7 @@ class GetWaypointsCircle(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("tower/position", access=py_trees.common.Access.READ)
         self.blackboard.register_key("tower/orientation", access=py_trees.common.Access.READ)
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
+        self.blackboard.register_key("finished_circle_layer", access=py_trees.common.Access.WRITE)
         
         
     def setup(self, **kwargs) -> None:
@@ -111,6 +112,7 @@ class GetWaypointsCircle(py_trees.behaviour.Behaviour):
             self.waypoints = response.waypoints
             waypoints_dict = {self.blackboard_waypoint_key: self.waypoints}
             setattr(self.blackboard, 'waypoints', waypoints_dict) # obcject.attribute = value
+            self.blackboard.finished_circle_layer = False
             self.logger.info(f"Waypoints stored in blackboard dict: waypoints[{self.blackboard_waypoint_key}]")
             return Status.SUCCESS
         except Exception as e:

@@ -31,6 +31,7 @@ from laptop_master.behaviours.get_waypoints_down_one_level import GetWaypointsDo
 from laptop_master.behaviours.get_waypoints_one_paint_blob import GetWaypointsOnePaintBlob
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
+from laptop_master.behaviours.follow_circle_waypoints import FollowCircleWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from rclpy.executors import MultiThreadedExecutor
 
@@ -64,7 +65,6 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Blackboard Logger",
         blackboard_keys=['/drone/position/x','/drone/position/y', '/drone/position/z', 'drone/orientation/yaw']
     )
-
     gather_data.add_children([localPosition2BB, perception2BB, bb_logger])
 
     move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
@@ -78,7 +78,6 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_waypoint_key="up"
     )
     move_up_sequence.add_children([get_waypoints_up, follow_waypoints_up])
-
     move_up_oneshot = py_trees.decorators.OneShot("Move Up Oneshot", child = move_up_sequence, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
 
     approach_tower_sequence = py_trees.composites.Sequence(name="Approach Tower", memory=True)
@@ -88,13 +87,11 @@ def create_root() -> py_trees.behaviour.Behaviour:
         service_name="plan_path_tower",
         blackboard_waypoint_key="approach_tower"
     )
-
     follow_waypoints_approach_tower=FollowWaypoints(
         behaviour_name="Follow Waypoints to Approach Tower",
         blackboard_waypoint_key="approach_tower"
     )
     approach_tower_sequence.add_children([get_waypoints_approach_tower, follow_waypoints_approach_tower])
-
     approach_tower_oneshot = py_trees.decorators.OneShot("Approach Tower Oneshot", child = approach_tower_sequence, policy = py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION)
 
     tasks = py_trees.composites.Sequence(name="Tasks", memory=True)
@@ -113,7 +110,6 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_waypoint_key="down"
     )
 
-    
     def drone_below_threshold_height(blackboard: py_trees.blackboard.Blackboard) -> bool:
         height_threshold_ned = -1.5
         if blackboard.drone.position.z >= height_threshold_ned:
@@ -127,12 +123,12 @@ def create_root() -> py_trees.behaviour.Behaviour:
         service_name="plan_path_spin",
         blackboard_waypoint_key="around_tower"
     )
-    follow_waypoints_around_tower=FollowWaypoints(
+    follow_waypoints_around_tower=FollowCircleWaypoints(
         behaviour_name="Follow Waypoints Around Tower",
         blackboard_waypoint_key="around_tower"
     )
-    circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
-
+    # circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
+    
     repeat_circle_until_below_threshold = RepeatUntilCondition(
         name = "Repeat Circle until Below Threshold",
         child = circle_tower,
@@ -140,10 +136,6 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_keys = ['/drone/position/z']
         )
         
-    idle = py_trees.behaviours.Running(name="Success!")
-
-    # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
-
     clean_sequence = py_trees.composites.Sequence(
         name="Clean Sequence",
         memory="False"
@@ -158,15 +150,43 @@ def create_root() -> py_trees.behaviour.Behaviour:
         behaviour_name="Follow Waypoints To Paint",
         blackboard_waypoint_key="to_paint"
     )
+    # TODO - test with RPI, or write dummy services for sprayer.
     # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
     # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
     clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint])
     
-    tasks.add_children([move_up_oneshot, approach_tower_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
-
-
-    root.add_children([gather_data, tasks])
+    def check_for_paint_detected(blackboard: py_trees.blackboard.Blackboard):
+        return blackboard.paint.found
     
+    paint_detected = py_trees.decorators.EternalGuard(
+        name="Paint Detected?",
+        condition=check_for_paint_detected,
+        blackboard_keys=["paint/found"],
+        child=clean_sequence
+    )
+    
+    inspect_and_go_next_waypoint = py_trees.composites.Selector(
+        name="Inspect And Go To Next Waypoint",
+        memory=False
+    )
+    inspect_and_go_next_waypoint.add_children([paint_detected, follow_waypoints_around_tower])
+    
+    def is_drone_done_circling(blackboard: py_trees.blackboard.Blackboard):
+        return blackboard.finished_circle_layer
+    
+    repeat_until_all_waypoints_inspected = RepeatUntilCondition(
+        name="Repeat until All Waypoints Inspected",
+        child=inspect_and_go_next_waypoint,
+        condition_fn=is_drone_done_circling,
+        blackboard_keys= ["finished_circle_layer"]
+    )
+    
+    circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected])
+    
+    
+    idle = py_trees.behaviours.Running(name="Success!")
+    tasks.add_children([move_up_oneshot, approach_tower_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
+    root.add_children([gather_data, tasks])
 
     return root
 

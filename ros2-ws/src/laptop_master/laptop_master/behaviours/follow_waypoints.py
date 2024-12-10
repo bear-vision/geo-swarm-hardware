@@ -17,7 +17,6 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.bb_waypoints_key = blackboard_waypoint_key
         self.blackboard = self.attach_blackboard_client() 
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.READ)
-
         
     def setup(self, **kwargs) -> None:
         """Sets up the DroneNavigateToWaypoint ROS action client.
