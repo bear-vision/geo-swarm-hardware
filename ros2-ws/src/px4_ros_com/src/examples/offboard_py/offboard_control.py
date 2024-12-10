@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus
-
+import numpy as np
 
 class OffboardControl(Node):
     """Node for controlling a vehicle in offboard mode."""
@@ -36,10 +36,13 @@ class OffboardControl(Node):
         self.offboard_setpoint_counter = 0
         self.vehicle_local_position = VehicleLocalPosition()
         self.vehicle_status = VehicleStatus()
-        self.takeoff_height = -5.0
+        self.takeoff_height = -0.5
+
+        self.state = 0
 
         # Create a timer to publish control commands
         self.timer = self.create_timer(0.1, self.timer_callback)
+        self.heartbeat_timer = self.create_timer(0.1, self.publish_offboard_control_heartbeat_signal)
 
     def vehicle_local_position_callback(self, vehicle_local_position):
         """Callback function for vehicle_local_position topic subscriber."""
@@ -54,6 +57,7 @@ class OffboardControl(Node):
         self.publish_vehicle_command(
             VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, param1=1.0)
         self.get_logger().info('Arm command sent')
+        self.get_logger().info(f"{self.vehicle_status}")
 
     def disarm(self):
         """Send a disarm command to the vehicle."""
@@ -82,6 +86,9 @@ class OffboardControl(Node):
         msg.body_rate = False
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.offboard_control_mode_publisher.publish(msg)
+
+        if self.offboard_setpoint_counter < 11:
+            self.offboard_setpoint_counter += 1
 
     def publish_position_setpoint(self, x: float, y: float, z: float):
         """Publish the trajectory setpoint."""
@@ -113,21 +120,31 @@ class OffboardControl(Node):
 
     def timer_callback(self) -> None:
         """Callback function for the timer."""
-        self.publish_offboard_control_heartbeat_signal()
+            
 
-        if self.offboard_setpoint_counter == 10:
+        if self.offboard_setpoint_counter > 10 and self.vehicle_status.nav_state != VehicleStatus.NAVIGATION_STATE_OFFBOARD:
             self.engage_offboard_mode()
             self.arm()
+            
+        if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
+            if self.state == 0:
+                self.publish_position_setpoint(2.75, 0.09, self.takeoff_height)
 
-        if self.vehicle_local_position.z > self.takeoff_height and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
-            self.publish_position_setpoint(0.0, 0.0, self.takeoff_height)
+                if self.vehicle_local_position.z <= self.takeoff_height:
+                    self.get_logger().info("Takeoff successful")
+                    self.state = 1
 
-        elif self.vehicle_local_position.z <= self.takeoff_height:
-            self.land()
-            exit(0)
+            # elif self.state == 1:
+            #     self.publish_position_setpoint(2.0, 0.0, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([2.0, 0.0])) <= 0.3:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 2
+            else:
+                self.land()
+                exit(0)
 
-        if self.offboard_setpoint_counter < 11:
-            self.offboard_setpoint_counter += 1
+
+        
 
 
 def main(args=None) -> None:

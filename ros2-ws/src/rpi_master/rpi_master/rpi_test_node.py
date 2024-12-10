@@ -54,31 +54,29 @@ class RPiTestNode(Node):
     def destroy(self):
         super().destroy_node()
         
-    def get_current_pose(self):
-        """Get current pose of the drone as a geometry_msgs/msg/Pose object. Returns the current pose in PX4 frame."""
-        # TODO use threading to handle concurrency correctly
-        pose_obj = Pose()
-        pose_obj.position.x = self.vehicle_local_position.x
-        pose_obj.position.y = self.vehicle_local_position.y
-        pose_obj.position.z = self.vehicle_local_position.z
-
-        pose_obj.orientation.w = self.vehicle_attitude.q[0]
-        pose_obj.orientation.x = self.vehicle_attitude.q[1]
-        pose_obj.orientation.y = self.vehicle_attitude.q[2]
-        pose_obj.orientation.z = self.vehicle_attitude.q[3]
-
-        return pose_obj
     
     def vehicle_pose_callback(self, pose_stamped):
+        #transform into px4 coordinate frame before setting drone pose
+        transformed_pose = rpi_master_utils.ros_to_px4_world_frame_transform(pose_stamped.pose)
+        pose_stamped.pose = transformed_pose 
         self.drone_pose = pose_stamped
+        
 
     def publish_drone_odometry(self):
         msg = VehicleOdometry()
         pos, ori = self.drone_pose.pose.position, self.drone_pose.pose.orientation
 
         msg.position = [pos.x, pos.y, pos.z]
-        #quaternion is w, x, y, z for px4
-        msg.q = [ori.w, ori.x, ori.y, ori.z]
+        #quaternion is x, y, z, w for px4
+        msg.q = [ori.x, ori.y, ori.z, ori.w]
+
+        msg.position_variance = [0.01,0.01,0.01]
+        msg.orientation_variance = [0.01,0.01,0.01]
+        msg.velocity_variance = [0.01,0.01,0.01]
+
+        msg.pose_frame = 1
+        msg.velocity_frame = 1
+        msg.quality = 1
 
         msg.timestamp = self.get_clock().now().nanoseconds // 1000
         self.vehicle_pose_publisher.publish(msg)
@@ -90,10 +88,10 @@ class RPiTestNode(Node):
     def vehicle_attitude_callback(self, vehicle_attitude):
         """Update vehicle attitude (orientation)."""
         self.vehicle_attitude = vehicle_attitude
-        # self.log_vehicle_pose_px4()
+        self.log_vehicle_pose_px4()
 
     def log_vehicle_pose_px4(self):
-        posn = f"\n - x: {self.vehicle_local_position.x}\n - x: {self.vehicle_local_position.y}\n - x: {self.vehicle_local_position.z}"
+        posn = f"\n - x: {self.vehicle_local_position.x}\n - y: {self.vehicle_local_position.y}\n - z: {self.vehicle_local_position.z}"
         ori = f"\n - w: {self.vehicle_attitude.q[0]}\n - x: {self.vehicle_attitude.q[1]}\n - y: {self.vehicle_attitude.q[2]}\n - z: {self.vehicle_attitude.q[3]}"
         self.get_logger().info(f"Vehicle local position (PX4): {posn} \n Vehicle attitude (PX4): {ori}")
 
