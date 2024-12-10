@@ -1,9 +1,9 @@
 import py_trees
 from py_trees.common import Status
-from geometry_msgs.msg import Pose, Quaternion
+from geometry_msgs.msg import Pose
 import math
 
-class GetWaypointsTower(py_trees.behaviour.Behaviour):
+class GetWaypointsOnePaintBlob(py_trees.behaviour.Behaviour):
     def __init__(self, behaviour_name, service_type, service_name, blackboard_waypoint_key):
         super().__init__(behaviour_name)
         self.waypoints = None
@@ -12,19 +12,19 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
         self.service_name = service_name
         self.service_type = service_type
         self.blackboard_waypoint_key = blackboard_waypoint_key
+
         
-        # read blackboard for current drone position and tower position
-        self.blackboard = self.attach_blackboard_client() 
+        # read blackboard for current drone position and paint blob position
+        self.blackboard = self.attach_blackboard_client()
         self.blackboard.register_key("drone/position/x", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/position/y", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/position/z", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/orientation/yaw", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/valid/xy_valid", access=py_trees.common.Access.READ)
         self.blackboard.register_key("drone/valid/z_valid", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("tower/position", access=py_trees.common.Access.READ)
-        self.blackboard.register_key("tower/orientation", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("paint/positions", access=py_trees.common.Access.READ)        
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
-        
+
         
     def setup(self, **kwargs) -> None:
         """Sets up service.
@@ -44,14 +44,13 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
             raise KeyError(error_message) from e  # 'direct cause' traceability
         
         # Set up service client
-        # self.tower_waypoint_client = self.node.create_client(PathPlannerSpin, 'plan_path_spin')
         self.waypoint_client = self.node.create_client(self.service_type, self.service_name)
         while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
             self.logger.info(f'Waiting for {self.service_name} service...')
             
-            
+    
     def initialise(self) -> None:
-        """Creates service request. This function is called on the first tick each time this node enters a RUNNING state"""
+        """Creates the service request"""
         request = self.service_type.Request()
         
         try:
@@ -71,28 +70,26 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:
             self.logger.error(f"No local position found. Is vehicle local position topic available? {str(e)}")
-        
+            
         try:
-            # Retrieve tower pose from blackboard (in ROS2 frame)
-            goal_pose = Pose()
-            goal_pose.position = self.blackboard.tower.position
-            goal_pose.orientation = self.blackboard.tower.orientation
-            request.tower_pose = goal_pose        
+            # Retrieve paint position
+            paint_positions = self.blackboard.paint.positions
+            request.target_pose = paint_positions[0] # TODO - we are assuming one waypoint rn
         except KeyError as e:
-            self.logger.error(f"No tower pose found. Is perception topic available? {str(e)}")
+            self.logger.error(f"No paint pose found. {str(e)}")
         except Exception as err:
             self.logger.error(f"More errors with perception blackboard... {str(err)}")
-        
-        # Request waypoints from service and save in blackboard for other behaviors to use
+            
+        # Request waypoints from service
         self.future = self.waypoint_client.call_async(request)
         self.logger.info(f"Requested {self.service_name} service")       
-    
+            
     
     def update(self) -> Status:
         """Check if service request was completed and retrieves the waypoints
 
         Returns:
-            Status.FAILURE if invalid x,y,z drone pose, or service call fails, or there is no service client yet 
+            Status.FAILURE if service call fails, or there is no service client yet 
             Status.SUCCESS if waypoints retrieved successfully
             Status.RUNNING if we are waiting for service response
         """
@@ -115,10 +112,6 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
         except Exception as e:
             self.logger.error(f'Service call failed: {str(e)}')
             return Status.FAILURE
-        
-    # def get_waypoints(self):
-    #     return self.waypoints
-
         
 # TODO: maybe put these in a common library
 def yaw_to_quaternion(yaw):

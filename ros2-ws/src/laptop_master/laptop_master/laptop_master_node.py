@@ -28,6 +28,7 @@ from laptop_master.behaviours.get_waypoints_circle import GetWaypointsCircle
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
 from laptop_master.behaviours.get_waypoints_up import GetWaypointsUp
 from laptop_master.behaviours.get_waypoints_down_one_level import GetWaypointsDownOneLevel
+from laptop_master.behaviours.get_waypoints_one_paint_blob import GetWaypointsOnePaintBlob
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
@@ -141,12 +142,28 @@ def create_root() -> py_trees.behaviour.Behaviour:
         
     idle = py_trees.behaviours.Running(name="Success!")
 
-    # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
-    # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
-
     # flipper = py_trees.behaviours.Periodic(name="Flip Eggs", n=2)
 
+    clean_sequence = py_trees.composites.Sequence(
+        name="Clean Sequence",
+        memory="False"
+    )
+    get_waypoints_to_paint = GetWaypointsOnePaintBlob(
+        behaviour_name="Get Waypoints To Paint",
+        service_type=PathPlannerPaint,
+        service_name="plan_path_paint",
+        blackboard_waypoint_key="to_paint"
+    )
+    follow_waypoints_to_paint = FollowWaypoints(
+        behaviour_name="Follow Waypoints To Paint",
+        blackboard_waypoint_key="to_paint"
+    )
+    # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
+    # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
+    clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint])
+    
     tasks.add_children([move_up_oneshot, approach_tower_oneshot, repeat_circle_until_below_threshold, land_oneshot, idle])
+
 
     root.add_children([gather_data, tasks])
     

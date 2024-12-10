@@ -21,6 +21,10 @@ def perception_to_blackboard():
         topic_name="realsense/out/perception_stuff",
         topic_type=PerceptionStuff,
         blackboard_variables={
+            'paint/found' : 'detected_dirty_patch',
+            'paint/count' : 'num_dirty_patches',
+            'paint/positions' : 'dirty_patches.poses',
+            'paint/radii' : 'dirty_patches_radii',
             'tower/found' : 'detected_tower',
             'tower/position' : 'tower_position.position',
             'tower/orientation' : 'tower_position.orientation'
