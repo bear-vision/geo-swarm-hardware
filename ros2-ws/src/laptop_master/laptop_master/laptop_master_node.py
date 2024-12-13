@@ -206,10 +206,12 @@ def create_root() -> py_trees.behaviour.Behaviour:
     inspect_and_go_next_waypoint.add_children([paint_detected, follow_next_waypoint])
     
     def is_drone_done_circling(blackboard: py_trees.blackboard.Blackboard):
-        # return blackboard.finished_circle_layer
-        if len(blackboard.waypoints['around_tower'].poses) == 0:
-            logger.warn(f"Waypoints length is 0")
+        # return blackboard.finished_circle_laye
+        if not ('around_tower' in blackboard.waypoints):
             return False
+        # if len(blackboard.waypoints['around_tower'].poses) == 0:
+        #     logger.warn(f"Waypoints length is 0")
+        #     return False
         return blackboard.waypoint_index >= len(blackboard.waypoints['around_tower'].poses)
     
     repeat_until_all_waypoints_inspected = RepeatUntilCondition(

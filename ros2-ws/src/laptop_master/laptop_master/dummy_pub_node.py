@@ -91,7 +91,7 @@ class DummyPubNode(Node):
                     # self.get_logger().info(f"Published paint blob: {perception_msg}\n")
                     return
         
-        # self.get_logger().info(f"Lowest radius: {lowest_r}")
+        self.get_logger().info(f"Lowest radius: {lowest_r}")
 
         perception_msg = PerceptionStuff()
         perception_msg.detected_tower = True
@@ -116,9 +116,9 @@ class DummyPubNode(Node):
 
         if self.drone_posn and self.drone_orientation:
             px4_drone_pose = Pose()
-            px4_drone_pose.position.x = self.drone_posn.y
-            px4_drone_pose.position.y = self.drone_posn.x
-            px4_drone_pose.position.z = -self.drone_posn.z
+            px4_drone_pose.position.x = self.drone_posn.x
+            px4_drone_pose.position.y = self.drone_posn.y
+            px4_drone_pose.position.z = self.drone_posn.z
             px4_drone_pose.orientation.w = float(self.drone_orientation.q[0])
             px4_drone_pose.orientation.x = float(self.drone_orientation.q[1])
             px4_drone_pose.orientation.y = float(self.drone_orientation.q[2])
