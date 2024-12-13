@@ -6,7 +6,10 @@ from py_trees.common import Status
 from py_trees.decorators import Decorator
 from py_trees.behaviour import Behaviour
 
-class RepeatUntilCondition(py_trees.decorators.Decorator):
+"""
+Run the subtree the starting the first time a condition is met. Will keep running after the first flip, even when the condiiton is no longer met.
+"""
+class RunOnCondition(py_trees.decorators.Decorator):
     def __init__(self, name: str, child: Behaviour, condition_fn, blackboard_keys = None):
         super().__init__(name=name, child=child)
 
@@ -23,14 +26,29 @@ class RepeatUntilCondition(py_trees.decorators.Decorator):
         else:
             self.condition_fn = condition_fn
 
+        self.condition_met = False
+
+    def initialise(self):
+        if self.condition_fn() and not self.condition_met:
+            self.condition_met = True
+            self.decorated.initialise()  # Initialize the child when condition is met
+            self.logger.info(f"Condition met!")
+
+
     def update(self):
         status = self.decorated.status
-        if status == py_trees.common.Status.SUCCESS:
-            if self.condition_fn():
-                return py_trees.common.Status.SUCCESS
-            else:
-                # self.decorated.stop(py_trees.common.Status.INVALID)
-                # self.decorated.initialise()
-                return py_trees.common.Status.RUNNING
 
-        return status
+        if not self.condition_met:
+            if self.condition_fn():
+                self.condition_met = True
+                self.logger.info(f"Condition met!")
+                self.decorated.initialise()
+            else:
+                self.terminate(py_trees.common.Status.FAILURE)
+                return py_trees.common.Status.FAILURE
+
+        
+        return self.decorated.update()
+
+    def terminate(self, new_status):
+        self.decorated.terminate(new_status)

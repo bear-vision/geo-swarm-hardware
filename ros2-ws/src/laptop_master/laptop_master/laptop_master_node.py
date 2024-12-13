@@ -32,11 +32,13 @@ from laptop_master.behaviours.get_waypoints_down_one_level import GetWaypointsDo
 from laptop_master.behaviours.get_waypoints_one_paint_blob import GetWaypointsOnePaintBlob
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
-from laptop_master.behaviours.follow_circle_waypoints import FollowCircleWaypoints
+from laptop_master.behaviours.follow_next_waypoint import FollowNextWaypoint
+# from laptop_master.behaviours.follow_circle_waypoints import FollowCircleWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from rclpy.executors import MultiThreadedExecutor
 
 from laptop_master.decorators.repeat_until_condition import *
+from laptop_master.decorators.run_on_condition import *
 
 import sys
  
@@ -125,10 +127,10 @@ def create_root() -> py_trees.behaviour.Behaviour:
         service_name="plan_path_spin",
         blackboard_waypoint_key="around_tower"
     )
-    follow_waypoints_around_tower=FollowCircleWaypoints(
-        behaviour_name="Follow Waypoints Around Tower",
-        blackboard_waypoint_key="around_tower"
-    )
+    # follow_waypoints_around_tower=FollowCircleWaypoints(
+    #     behaviour_name="Follow Waypoints Around Tower",
+    #     blackboard_waypoint_key="around_tower"
+    # )
     # circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
     
     repeat_circle_until_below_threshold = RepeatUntilCondition(
@@ -182,21 +184,40 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_keys=["paint/found"],
         child=clean_sequence
     )
+
+    # paint_detected = RunOnCondition(
+    #     name="Paint Detected?",
+    #     condition_fn=check_for_paint_detected,
+    #     blackboard_keys=["paint/found"],
+    #     child=clean_sequence
+    # )
     
     inspect_and_go_next_waypoint = py_trees.composites.Selector(
         name="Inspect And Go To Next Waypoint",
         memory=True #TODO: check
     )
-    inspect_and_go_next_waypoint.add_children([paint_detected, follow_waypoints_around_tower])
+
+    follow_next_waypoint = FollowNextWaypoint(
+        behaviour_name="Follow Next Waypoint",
+        blackboard_waypoint_key="around_tower"
+    )
+
+    #replace with follow_next_waypoint
+    inspect_and_go_next_waypoint.add_children([paint_detected, follow_next_waypoint])
     
     def is_drone_done_circling(blackboard: py_trees.blackboard.Blackboard):
-        return blackboard.finished_circle_layer
+        # return blackboard.finished_circle_layer
+        if len(blackboard.waypoints) == 0:
+            logger.warn(f"Waypoints length is 0")
+            return False
+        return blackboard.waypoint_index >= len(blackboard.waypoints)
     
     repeat_until_all_waypoints_inspected = RepeatUntilCondition(
         name="Repeat until All Waypoints Inspected",
         child=inspect_and_go_next_waypoint,
         condition_fn=is_drone_done_circling,
-        blackboard_keys= ["finished_circle_layer"]
+        # blackboard_keys= ["finished_circle_layer"]
+        blackboard_keys = ['waypoints', 'waypoint_index']
     )
     
     circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected, get_waypoints_down_one_level, follow_waypoints_down_one_level])
