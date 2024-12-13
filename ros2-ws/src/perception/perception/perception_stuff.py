@@ -136,7 +136,7 @@ class MinimalSubscriberArray(Node):
         )
 
         # Publisher
-        self.point_pub = self.create_publisher(PerceptionStuff, 'perception_stuff_pub', 10)
+        self.point_pub = self.create_publisher(PerceptionStuff, 'realsense/out/perception_stuff', 10)
 
         # Timer to periodically publish the PerceptionMsg
         self.timer = self.create_timer(1.0, self.publish_perception_message)
