@@ -19,6 +19,13 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(realsense_launch_file),
             launch_arguments={
+                'color_width': '424',
+                'color_height': '240',
+                'depth_width': '424',
+                'depth_height': '240',
+                'align_depth': 'true',
+                'depth_fps': '6',
+                'color_fps': '6',
                 'enable_rgbd': 'true',
                 'enable_sync': 'true',
                 'align_depth.enable': 'true',

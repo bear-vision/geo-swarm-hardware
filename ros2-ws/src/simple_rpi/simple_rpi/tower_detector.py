@@ -11,7 +11,6 @@ import cv2
 from transforms3d.euler import euler2quat
 
 
-
 class ObjectDetector(Node):
     def __init__(self):
         super().__init__('tower_detector')

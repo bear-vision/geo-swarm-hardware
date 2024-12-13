@@ -20,7 +20,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'drone_perception = perception.drone_perception:main'
+            'drone_perception = perception.drone_perception:main',
+            'dirt_detector = perception.dirt_detector:main',
+            'tower_detector = perception.tower_detector:main',
+            'perception_stuff = perception.perception_stuff:main',
         ],
     },
 )
