@@ -33,7 +33,7 @@ from laptop_master.behaviours.get_waypoints_one_paint_blob import GetWaypointsOn
 from laptop_master.behaviours.sprayer import SprayerBehaviour
 from laptop_master.behaviours.follow_waypoints import FollowWaypoints
 from laptop_master.behaviours.follow_next_waypoint import FollowNextWaypoint
-# from laptop_master.behaviours.follow_circle_waypoints import FollowCircleWaypoints
+from laptop_master.behaviours.follow_circle_waypoints import FollowCircleWaypoints
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from rclpy.executors import MultiThreadedExecutor
 
@@ -69,7 +69,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     #     blackboard_keys=['/drone/position/x','/drone/position/y', '/drone/position/z', 'drone/orientation/yaw']
     # )
     dummy_bb_reader = DummyBlackboardReader()
-    gather_data.add_children([localPosition2BB, perception2BB, dummy_bb_reader])
+    gather_data.add_children([localPosition2BB, perception2BB]) #, dummy_bb_reader])
 
     move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
     get_waypoints_up = GetWaypointsUp(
@@ -127,10 +127,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
         service_name="plan_path_spin",
         blackboard_waypoint_key="around_tower"
     )
-    # follow_waypoints_around_tower=FollowCircleWaypoints(
-    #     behaviour_name="Follow Waypoints Around Tower",
-    #     blackboard_waypoint_key="around_tower"
-    # )
+    
     # circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
     
     repeat_circle_until_below_threshold = RepeatUntilCondition(
@@ -170,27 +167,37 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_waypoint_key="approach_tower"
     )
     return_to_radius_sequence.add_children([get_waypoints_to_radius, follow_waypoints_to_radius])
-    
 
-    #example for going to paint and coming back from paint
-    clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint, return_to_radius_sequence])
+    
     
     def check_for_paint_detected(blackboard: py_trees.blackboard.Blackboard):
-        return blackboard.paint.found
-    
-    paint_detected = py_trees.decorators.EternalGuard(
-        name="Paint Detected?",
-        condition=check_for_paint_detected,
-        blackboard_keys=["paint/found"],
-        child=clean_sequence
-    )
+        if blackboard.paint.found:
+            if len(blackboard.paint.positions) <= 0:
+                return False
 
-    # paint_detected = RunOnCondition(
+            px, py, pz = blackboard.paint.positions[0].position.x, blackboard.paint.positions[0].position.y, blackboard.paint.positions[0].position.z
+            for visited_paint_pos in blackboard.visited_paint_positions:
+                vx, vy, vz = visited_paint_pos.position.x, visited_paint_pos.position.y, visited_paint_pos.position.z
+                if ((vx - px)**2 + (vy - py)**2 + (vz - pz)**2) ** 0.5 <= 0.1:
+                    return False
+
+            return True
+
+        return False
+    
+    # paint_detected = py_trees.decorators.EternalGuard(
     #     name="Paint Detected?",
-    #     condition_fn=check_for_paint_detected,
-    #     blackboard_keys=["paint/found"],
+    #     condition=check_for_paint_detected,
+    #     blackboard_keys=["paint/found", "paint/positions", "visited_paint_positions"],
     #     child=clean_sequence
     # )
+
+    paint_detected = RunOnCondition(
+        name="Paint Detected?",
+        condition_fn=check_for_paint_detected,
+        blackboard_keys=["paint/found", "paint/positions", "visited_paint_positions"],
+        child=clean_sequence
+    )
     
     inspect_and_go_next_waypoint = py_trees.composites.Selector(
         name="Inspect And Go To Next Waypoint",
@@ -204,6 +211,15 @@ def create_root() -> py_trees.behaviour.Behaviour:
 
     #replace with follow_next_waypoint
     inspect_and_go_next_waypoint.add_children([paint_detected, follow_next_waypoint])
+
+    follow_next_waypoint_clean_seq = FollowNextWaypoint(
+        behaviour_name="Follow Next Waypoint",
+        blackboard_waypoint_key="around_tower"
+    )
+
+    #example for going to paint and coming back from paint, then going to the next waypoint - return_to_radius_sequence,
+    clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint, follow_next_waypoint_clean_seq])
+    
     
     def is_drone_done_circling(blackboard: py_trees.blackboard.Blackboard):
         # return blackboard.finished_circle_laye
@@ -222,7 +238,14 @@ def create_root() -> py_trees.behaviour.Behaviour:
         blackboard_keys = ['waypoints', 'waypoint_index']
     )
     
-    circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected, get_waypoints_down_one_level, follow_waypoints_down_one_level])
+    # circle_tower.add_children([get_waypoints_around_tower, repeat_until_all_waypoints_inspected, get_waypoints_down_one_level, follow_waypoints_down_one_level])
+
+    # TODO remove later
+    follow_waypoints_around_tower=FollowCircleWaypoints(
+        behaviour_name="Follow Waypoints Around Tower",
+        blackboard_waypoint_key="around_tower"
+    )
+    circle_tower.add_children([get_waypoints_around_tower, follow_waypoints_around_tower, get_waypoints_down_one_level, follow_waypoints_down_one_level])
     
     
     idle = py_trees.behaviours.Running(name="Success!")
@@ -263,9 +286,8 @@ def main(args=None):
     # executor.add_node(tree.node)
 
     # tree.visitors.append(py_trees.visitors.DebugVisitor())
-    # tree.tick_tock(period_ms=100.0) # 10 Hz
 
-    tree.tick_tock(period_ms=500.0)
+    tree.tick_tock(period_ms=500.0) #10 Hz
     try:
         # executor.spin()
         rclpy.spin(tree.node)

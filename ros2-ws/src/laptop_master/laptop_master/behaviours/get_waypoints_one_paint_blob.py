@@ -24,6 +24,8 @@ class GetWaypointsOnePaintBlob(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("drone/valid/z_valid", access=py_trees.common.Access.READ)
         self.blackboard.register_key("paint/positions", access=py_trees.common.Access.READ)        
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
+    
+        
 
         
     def setup(self, **kwargs) -> None:
@@ -47,7 +49,7 @@ class GetWaypointsOnePaintBlob(py_trees.behaviour.Behaviour):
         self.waypoint_client = self.node.create_client(self.service_type, self.service_name)
         while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
             self.logger.info(f'Waiting for {self.service_name} service...')
-            
+    
     
     def initialise(self) -> None:
         """Creates the service request"""
@@ -75,6 +77,7 @@ class GetWaypointsOnePaintBlob(py_trees.behaviour.Behaviour):
             # Retrieve paint position
             paint_positions = self.blackboard.paint.positions
             request.target_pose = paint_positions[0] # TODO - we are assuming one waypoint rn
+            self.blackboard.paint_target = paint_positions[0] # first point
         except KeyError as e:
             self.logger.error(f"No paint pose found. {str(e)}")
         except Exception as err:

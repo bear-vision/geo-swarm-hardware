@@ -24,6 +24,12 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("drone/valid/z_valid", access=py_trees.common.Access.READ)
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
         
+        #scuffed - TODO better solution than harcodring the list of visited paint posns into blackboard
+        self.blackboard.register_key("visited_paint_positions", access = py_trees.common.Access.READ)
+        self.blackboard.register_key("visited_paint_positions", access = py_trees.common.Access.WRITE)
+        self.blackboard.register_key("paint_target", access = py_trees.common.Access.READ)
+        self.blackboard.register_key("paint_target", access = py_trees.common.Access.WRITE)
+
     def setup(self, **kwargs) -> None:
         """Sets up service.
         
@@ -45,6 +51,10 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
         while not self.waypoint_client.wait_for_service(timeout_sec=1.0):
             self.logger.info(f'Waiting for {self.service_name} service...')
 
+        self.blackboard.visited_paint_positions = [] 
+        self.blackboard.paint_target = None
+        
+
     def initialise(self) -> None:
         """Creates service request."""
         request = self.service_type.Request()
@@ -61,7 +71,7 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.z = float(or_z)
                 request.current_pose.orientation.w = float(or_w)
 
-                request.height_diff = self.height_diff
+                request.height_diff = self.height_diff + self.blackboard.drone.position.z
                 request.num_waypoints = 1
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")

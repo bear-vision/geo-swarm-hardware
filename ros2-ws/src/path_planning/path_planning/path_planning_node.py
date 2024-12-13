@@ -106,14 +106,14 @@ class PathPlannerServiceNode(Node):
         num_waypoints = request.num_waypoints
         if num_waypoints <= 1:
             #TODO - handle the case where we have an invalid number of waypoints. Setting to 10 for now
-            num_waypoints = 5
+            num_waypoints = 8
 
         # response incude start and goal position
         # Generate timestamps for the waypoints
         t = np.linspace(0, 1, num_waypoints)[1:]
 
         # need a radius to stay away from the paint so we don't hit the tower... need to tune
-        radius_from_paint = 1.0
+        radius_from_paint = 0.75
 
         # Current and target positions for x, y, z, and yaw angle
         curr_x = request.current_pose.position.x
@@ -126,12 +126,14 @@ class PathPlannerServiceNode(Node):
 
         curr_yaw = quaternion_to_yaw(request.current_pose.orientation)
         #the target orientation has dummy values. TODO. use the orientation part of the target pose properly
-        target_yaw = math.atan2(paint_y - curr_y, paint_x - curr_x)
+        yaw_to_paint = math.atan2(paint_y - curr_y, paint_x - curr_x)
         
-        target_x = paint_x - radius_from_paint * np.cos(target_yaw)
-        target_y = paint_y - radius_from_paint * np.sin(target_yaw)
+        target_x = paint_x - radius_from_paint * np.cos(yaw_to_paint)
+        target_y = paint_y - radius_from_paint * np.sin(yaw_to_paint)
         target_z = paint_z
-        # target_yaw = quaternion_to_yaw(request.target_pose.orientation)
+
+        #TODO - until we can debug other parts, leave this here :/
+        target_yaw = curr_yaw
 
         #actual target posn calculation - to the radius distance away from paint pos
 
@@ -171,6 +173,7 @@ class PathPlannerServiceNode(Node):
 
         # Send message to console
         self.get_logger().info('Waypoints generated and sent via service.')
+        self.get_logger().info(f"Generated waypoints: {waypoint_array}")
         self.get_logger().info('Lets clean the paint...')
         return response
     

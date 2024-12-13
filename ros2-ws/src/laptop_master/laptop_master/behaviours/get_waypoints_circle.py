@@ -4,7 +4,7 @@ from geometry_msgs.msg import Pose, Quaternion
 import math
 
 class GetWaypointsCircle(py_trees.behaviour.Behaviour):
-    def __init__(self, behaviour_name, service_type, service_name, blackboard_waypoint_key):
+    def __init__(self, behaviour_name, service_type, service_name, blackboard_waypoint_key, radius = 2.25, num_waypoints = 8):
         super().__init__(behaviour_name)
         self.waypoints = None
         self.waypoint_client = None
@@ -26,6 +26,9 @@ class GetWaypointsCircle(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
         self.blackboard.register_key("waypoint_index", access=py_trees.common.Access.WRITE)
         self.blackboard.register_key("finished_circle_layer", access=py_trees.common.Access.WRITE)
+
+        self.radius = radius
+        self.num_waypoints = num_waypoints
         
         
     def setup(self, **kwargs) -> None:
@@ -85,7 +88,8 @@ class GetWaypointsCircle(py_trees.behaviour.Behaviour):
         except Exception as err:
             self.logger.error(f"More errors with perception blackboard... {str(err)}")
         
-        request.radius = 2.25
+        request.radius = self.radius
+        request.num_waypoints = self.num_waypoints
         # Request waypoints from service and save in blackboard for other behaviors to use
         self.future = self.waypoint_client.call_async(request)
         self.logger.info(f"Requested {self.service_name} service")       

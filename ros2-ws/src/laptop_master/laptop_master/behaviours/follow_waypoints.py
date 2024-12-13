@@ -17,6 +17,12 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         self.bb_waypoints_key = blackboard_waypoint_key
         self.blackboard = self.attach_blackboard_client() 
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.READ)
+
+        self.blackboard.register_key("visited_paint_positions", access = py_trees.common.Access.READ)
+        self.blackboard.register_key("visited_paint_positions", access = py_trees.common.Access.WRITE)
+        self.blackboard.register_key("paint_target", access = py_trees.common.Access.READ)
+        self.blackboard.register_key("paint_target", access = py_trees.common.Access.WRITE)
+        
         
     def setup(self, **kwargs) -> None:
         """Sets up the DroneNavigateToWaypoint ROS action client.
@@ -122,8 +128,14 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
         # if self.goal_handle and (new_status == Status.FAILURE or new_status == Status.INVALID):
         #     self.logger.info("Cancelling current goal")
         #     self.goal_handle.cancel_goal_async()
+
+        if new_status == Status.SUCCESS and self.blackboard.paint_target is not None:
+            self.blackboard.visited_paint_positions.append(self.blackboard.paint_target)
+            self.logger.info(f"New visited paint position {self.blackboard.paint_target}")
+            
         self.goal_handle = None
         self.waypoints = None
+        self.blackboard.paint_target = None
             
             
 # TODO: maybe put this in a common library

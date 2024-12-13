@@ -25,7 +25,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
         self.blackboard.register_key("tower/orientation", access=py_trees.common.Access.READ)
         self.blackboard.register_key("waypoints", access=py_trees.common.Access.WRITE)
         
-        
+
     def setup(self, **kwargs) -> None:
         """Sets up service.
         

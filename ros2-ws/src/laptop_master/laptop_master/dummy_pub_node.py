@@ -24,7 +24,7 @@ class DummyPubNode(Node):
         )
 
         #paint locations in ROS2 frame as defined in the PX4 autopilot tower model file
-        self.paint_locations = [Point(x = 5.0, y = 4.5, z = 2.0), Point(x = 5.5, y = 5.0, z = 3.0)] #, Point(x = 10.0, y = 10.475, z = 6.0), Point(x = 10.0, y = 9.525, z = 9.0)]
+        self.paint_locations = [Point(x = 4.5, y = 5.0, z = 2.0), Point(x = 5.5, y = 5.0, z = 3.0)] #, Point(x = 10.0, y = 10.475, z = 6.0), Point(x = 10.0, y = 9.525, z = 9.0)]
         
         # stores local position in PX4 frame
         self.drone_posn = VehicleLocalPosition()
@@ -78,20 +78,20 @@ class DummyPubNode(Node):
         #TODO - If self.drone_pose is close enough to a paint blob in self.paint_locations, then set relevant fields in Perception msg
         # (i think a good starting radius to test is 1.8 meters - we can change it later)
         drone_pos = self.drone_pose
-        lowest_r = float('inf')
+        # lowest_r = float('inf')
         if drone_pos:
             for paint_blob in self.paint_locations:
                 diff = np.array([drone_pos.position.x, drone_pos.position.y, drone_pos.position.z]) - np.array([paint_blob.x, paint_blob.y, paint_blob.z])
                 r = np.linalg.norm(diff)
                 # self.get_logger().info(f"{diff}, {r}")
-                lowest_r = min(lowest_r, r) 
-                if self.is_within_radius(drone_pos.position, paint_blob, 1.8) and self.is_within_radius_xy(drone_pos.position, paint_blob, 1.75):
+                # lowest_r = min(lowest_r, r) 
+                if self.is_within_radius(drone_pos.position, paint_blob, 1.85) and self.is_within_radius_xy(drone_pos.position, paint_blob, 1.8):
                     perception_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z)
                     self.perception_pub.publish(perception_msg)
                     # self.get_logger().info(f"Published paint blob: {perception_msg}\n")
                     return
         
-        self.get_logger().info(f"Lowest radius: {lowest_r}")
+        # self.get_logger().info(f"Lowest radius: {lowest_r}")
 
         perception_msg = PerceptionStuff()
         perception_msg.detected_tower = True
