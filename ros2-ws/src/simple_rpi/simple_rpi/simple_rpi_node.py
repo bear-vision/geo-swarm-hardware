@@ -23,7 +23,7 @@ from std_srvs.srv import Trigger
 from simple_rpi.behaviours.detect_paint import DetectPaintBehaviour
 from simple_rpi.behaviours.turn_on_sprayer import TurnOnSprayerBehaviour
 from simple_rpi.behaviours.turn_off_sprayer import TurnOffSprayerBehaviour
-from simple_rpi.behaviours.bb_logger import BBLoggerBehaviour
+from simple_rpi.behaviours.in_range import InRangeBehaviour
 from simple_rpi.behaviours.perception_2BB import *
 
 def custom_qos():
@@ -50,15 +50,12 @@ def create_root() -> py_trees.behaviour.Behaviour:
     tasks = py_trees.composites.Sequence(name="Tasks", memory = True)
     
     perception2BB = perception_to_blackboard()
-    bb_logger = BBLoggerBehaviour(
-        behaviour_name="Blackboard Logger",
-        blackboard_keys=['/drone/position/x','/drone/position/y', '/drone/position/z', 'drone/orientation/yaw']
-    )
-    gather_data.add_children([perception2BB, bb_logger])
+    gather_data.add_children([perception2BB])
 
     detect_paint = DetectPaintBehaviour(behaviour_name="Detect Paint")
-    actuate_sprayer = TurnOnSprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='rpi_sprayer_on')
-    turn_off_sprayer = TurnOffSprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='rpi_sprayer_off')    
+    # in_range_of_paint = InRangeBehaviour(behaviour_name="Is drone in-range to spray?")
+    actuate_sprayer = TurnOnSprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='sprayer_on')
+    turn_off_sprayer = TurnOffSprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='sprayer_off')    
     tasks.add_children([detect_paint, actuate_sprayer, turn_off_sprayer])
     root.add_children([gather_data, tasks])
 

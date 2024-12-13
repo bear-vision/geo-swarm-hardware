@@ -10,6 +10,7 @@ class TurnOnSprayerBehaviour(py_trees.behaviour.Behaviour):
         self.service_name = service_name
         self.service_type = service_type
         self.future = None
+        self.time_tracker = 0.0
         
     def setup(self, **kwargs) -> None:
         """Sets up the sprayer service.
@@ -38,6 +39,7 @@ class TurnOnSprayerBehaviour(py_trees.behaviour.Behaviour):
         """Creates service request."""
         request = self.service_type.Request() # empty
         self.future = self.sprayer_client.call_async(request)
+        self.time_tracker = 0.0 # reset time
         
     def update(self) -> Status:
         """Check service until it is completed

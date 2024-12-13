@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'simple_rpi_node = simple_rpi.simple_rpi_node:main'
+            'simple_rpi_node = simple_rpi.simple_rpi_node:main',
+            'dummy_pub_node = simple_rpi.dummy_pub_node:main',
+            'dummy_servo_srv_node = simple_rpi.dummy_servo_srv_node:main'
         ],
     },
 )
