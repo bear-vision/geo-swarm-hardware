@@ -44,27 +44,31 @@ class DummyPubNode(Node):
     
     def create_perception_msg(self,x ,y, z):
         perception_msg = PerceptionStuff()
-
         perception_msg.detected_tower = True
 
         perception_msg.tower_position = Pose(position = Point(x = 5.0, y = 5.0, z = 5.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
 
         perception_msg.detected_dirty_patch = True
-
         perception_msg.num_dirty_patches = 1
-
         dirty_patch_positions = PoseArray()
         dirty_patch_positions.poses = [Pose(position = Point(x = x, y = y, z = z), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))]
         perception_msg.dirty_patches = dirty_patch_positions
-
         perception_msg.dirty_patches_radii = [0.5]
-
-
-
         return perception_msg
     
+    def no_paint_msg(self):
+        perception_msg = PerceptionStuff()
+        perception_msg.detected_tower = True
+        perception_msg.tower_position = Pose(position = Point(x = 10.0, y = 10.0, z = 10.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
+        perception_msg.detected_dirty_patch = False
+        perception_msg.num_dirty_patches = 0
+        return perception_msg
+        
+    
     def is_within_radius(self, point_a, point_b, radius):
-        return np.linalg.norm(np.array([point_a.x, point_a.y, point_a.z]) - np.array([point_b.x, point_b.y, point_b.z])) <= radius
+        distance = np.linalg.norm(np.array([point_a.x, point_a.y, point_a.z]) - np.array([point_b.x, point_b.y, point_b.z]))
+        self.get_logger().info(f"distance {distance}")
+        return distance <= radius
 
     def is_within_radius_xy(self, point_a, point_b, radius):
         return np.linalg.norm(np.array([point_a.x, point_a.y]) - np.array([point_b.x, point_b.y])) <= radius
@@ -110,14 +114,14 @@ class DummyPubNode(Node):
         #we assume that the current local position and vehicle attitude are time-synced.
 
         if self.drone_posn and self.drone_orientation:
-            px4_drone_pose = Pose()
-            px4_drone_pose.position.x = self.drone_posn.x
-            px4_drone_pose.position.y = self.drone_posn.y
-            px4_drone_pose.position.z = self.drone_posn.z
-            px4_drone_pose.orientation.w = float(self.drone_orientation.q[0])
-            px4_drone_pose.orientation.x = float(self.drone_orientation.q[1])
-            px4_drone_pose.orientation.y = float(self.drone_orientation.q[2])
-            px4_drone_pose.orientation.z = float(self.drone_orientation.q[3])
+            ros2_drone_pose = Pose()
+            ros2_drone_pose.position.x = self.drone_posn.y
+            ros2_drone_pose.position.y = self.drone_posn.x
+            ros2_drone_pose.position.z = -self.drone_posn.z
+            ros2_drone_pose.orientation.w = float(self.drone_orientation.q[0])
+            ros2_drone_pose.orientation.x = float(self.drone_orientation.q[1])
+            ros2_drone_pose.orientation.y = float(self.drone_orientation.q[2])
+            ros2_drone_pose.orientation.z = float(self.drone_orientation.q[3])
 
             ros2_drone_pose = rpi_master_utils.px4_to_ros_world_frame_transform(px4_drone_pose)
 
