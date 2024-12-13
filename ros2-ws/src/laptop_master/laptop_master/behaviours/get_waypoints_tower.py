@@ -78,6 +78,7 @@ class GetWaypointsTower(py_trees.behaviour.Behaviour):
             goal_pose.position = self.blackboard.tower.position
             goal_pose.orientation = self.blackboard.tower.orientation
             request.tower_pose = goal_pose        
+            request.radius = 2.25
         except KeyError as e:
             self.logger.error(f"No tower pose found. Is perception topic available? {str(e)}")
         except Exception as err:

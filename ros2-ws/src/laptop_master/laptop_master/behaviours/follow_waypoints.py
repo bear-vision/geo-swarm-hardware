@@ -118,9 +118,10 @@ class FollowWaypoints(py_trees.behaviour.Behaviour):
             new_status: stateus we terminate  the node with 
         """
         self.logger.info(f"Terminating with new status: {new_status}")
-        if self.goal_handle and (new_status == Status.FAILURE or new_status == Status.INVALID):
-            self.logger.info("Cancelling current goal")
-            self.goal_handle.cancel_goal_async()
+        # It seems like this is preventing us from following paint waypoints. Disabling for now.
+        # if self.goal_handle and (new_status == Status.FAILURE or new_status == Status.INVALID):
+        #     self.logger.info("Cancelling current goal")
+        #     self.goal_handle.cancel_goal_async()
         self.goal_handle = None
         self.waypoints = None
             

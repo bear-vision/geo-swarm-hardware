@@ -104,25 +104,36 @@ class PathPlannerServiceNode(Node):
 
     def generate_waypoints_towards_paint(self, request, response):
         num_waypoints = request.num_waypoints
-        if num_waypoints <= 0:
+        if num_waypoints <= 1:
             #TODO - handle the case where we have an invalid number of waypoints. Setting to 10 for now
-            num_waypoints = 10
+            num_waypoints = 5
 
         # response incude start and goal position
         # Generate timestamps for the waypoints
-        t = np.linspace(0, 1, num_waypoints)
+        t = np.linspace(0, 1, num_waypoints)[1:]
+
+        # need a radius to stay away from the paint so we don't hit the tower... need to tune
+        radius_from_paint = 1.0
 
         # Current and target positions for x, y, z, and yaw angle
         curr_x = request.current_pose.position.x
         curr_y = request.current_pose.position.y
         curr_z = request.current_pose.position.z
         
-        target_x = request.target_pose.position.x
-        target_y = request.target_pose.position.y
-        target_z = request.target_pose.position.z
+        paint_x = request.target_pose.position.x
+        paint_y = request.target_pose.position.y
+        paint_z = request.target_pose.position.z
 
         curr_yaw = quaternion_to_yaw(request.current_pose.orientation)
-        target_yaw = quaternion_to_yaw(request.target_pose.orientation)
+        #the target orientation has dummy values. TODO. use the orientation part of the target pose properly
+        target_yaw = math.atan2(paint_y - curr_y, paint_x - curr_x)
+        
+        target_x = paint_x - radius_from_paint * np.cos(target_yaw)
+        target_y = paint_y - radius_from_paint * np.sin(target_yaw)
+        target_z = paint_z
+        # target_yaw = quaternion_to_yaw(request.target_pose.orientation)
+
+        #actual target posn calculation - to the radius distance away from paint pos
 
         # Set velocity  values (same as the linear trajectory code)
         start_velocity = 0  # Start velocity

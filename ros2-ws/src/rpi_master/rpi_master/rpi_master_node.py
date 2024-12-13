@@ -114,7 +114,7 @@ class RPiMasterNode(Node):
 
     def navigate_goal_callback(self, goal_request):
         """Accept or reject a client request to begin an action."""
-        self.get_logger().info(f"Received waypoint goal (ROS2): {goal_request.waypoint}")
+        self.get_logger().info(f"Received waypoint goal (ROS2): {(goal_request.waypoint.position.x, goal_request.waypoint.position.y, goal_request.waypoint.position.z)}")
         with self.flight_state_lock:
             if self.flight_state is not DroneFlightState.NAVIGATING and self.current_goal is None:
                 # TODO - perform some validation on the goal request (for example, we should never allow requesting below or above a certain height)
@@ -133,7 +133,7 @@ class RPiMasterNode(Node):
     def handle_accepted_navigate_callback(self, goal_handle):
         '''Start or defer execution of an already-accepted goal'''
 
-        self.get_logger().info(f"Processing accepted waypoint (ROS2): {goal_handle.request.waypoint}")
+        self.get_logger().info(f"Processing accepted waypoint (ROS2): {(goal_handle.request.waypoint.position.x, goal_handle.request.waypoint.position.y, goal_handle.request.waypoint.position.z)}")
 
         # update waypoint fields. self.publish_latest_waypoint() and related timer callback handles the actual publishing of the correct waypoint to PX4.
         self.prev_waypoint = self.latest_waypoint

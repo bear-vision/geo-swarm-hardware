@@ -84,7 +84,7 @@ class GetWaypointsCircle(py_trees.behaviour.Behaviour):
         except Exception as err:
             self.logger.error(f"More errors with perception blackboard... {str(err)}")
         
-        request.radius = 1.8
+        request.radius = 2.25
         # Request waypoints from service and save in blackboard for other behaviors to use
         self.future = self.waypoint_client.call_async(request)
         self.logger.info(f"Requested {self.service_name} service")       

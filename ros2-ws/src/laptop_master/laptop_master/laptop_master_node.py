@@ -22,7 +22,8 @@ from custom_interfaces.srv import PathPlannerPaint, PathPlannerUp, PathPlannerSp
 from sensor_msgs.msg import Image
 from laptop_master.behaviours.local_position_2BB import *
 from laptop_master.behaviours.perception_2BB import *
-from laptop_master.behaviours.bb_logger import *
+from laptop_master.behaviours.dummy_blackboard_reader import *
+# from laptop_master.behaviours.bb_logger import *
 from laptop_master.behaviours.land_drone import *
 from laptop_master.behaviours.get_waypoints_circle import GetWaypointsCircle
 from laptop_master.behaviours.get_waypoints_tower import GetWaypointsTower
@@ -61,17 +62,18 @@ def create_root() -> py_trees.behaviour.Behaviour:
     gather_data = py_trees.composites.Sequence(name="Gather Data", memory=True)
     localPosition2BB =  vehicle_local_position_to_blackboard(qos_profile)
     perception2BB = perception_to_blackboard()
-    bb_logger = BBLogger(
-        behaviour_name="Blackboard Logger",
-        blackboard_keys=['/drone/position/x','/drone/position/y', '/drone/position/z', 'drone/orientation/yaw']
-    )
-    gather_data.add_children([localPosition2BB, perception2BB, bb_logger])
+    # bb_logger = BBLogger(
+    #     behaviour_name="Blackboard Logger",
+    #     blackboard_keys=['/drone/position/x','/drone/position/y', '/drone/position/z', 'drone/orientation/yaw']
+    # )
+    dummy_bb_reader = DummyBlackboardReader()
+    gather_data.add_children([localPosition2BB, perception2BB, dummy_bb_reader])
 
     move_up_sequence = py_trees.composites.Sequence(name="Move Up Sequence", memory=True)
     get_waypoints_up = GetWaypointsUp(
         behaviour_name="Get Waypoints Up",
         blackboard_waypoint_key="up",
-        height_diff = 2.0
+        height_diff = 3.0
     )
     follow_waypoints_up = FollowWaypoints(
         behaviour_name="Follow Waypoints Up",
@@ -153,7 +155,23 @@ def create_root() -> py_trees.behaviour.Behaviour:
     # TODO - test with RPI, or write dummy services for sprayer.
     # actuate_sprayer = SprayerBehaviour(behaviour_name="Actuate Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_on')
     # turn_off_sprayer = SprayerBehaviour(behaviour_name="Turn Off Sprayer", service_type=Trigger, service_name='/rpi_master/rpi_sprayer_off')
-    clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint])
+    
+    return_to_radius_sequence = py_trees.composites.Sequence(name="Approach Tower", memory=True)
+    get_waypoints_to_radius = GetWaypointsTower(
+        behaviour_name="Get Waypoints to Approach Tower",
+        service_type=PathPlannerTower,
+        service_name="plan_path_tower",
+        blackboard_waypoint_key="approach_tower"
+    )
+    follow_waypoints_to_radius=FollowWaypoints(
+        behaviour_name="Follow Waypoints to Approach Tower",
+        blackboard_waypoint_key="approach_tower"
+    )
+    return_to_radius_sequence.add_children([get_waypoints_to_radius, follow_waypoints_to_radius])
+    
+
+    #example for going to paint and coming back from paint
+    clean_sequence.add_children([get_waypoints_to_paint, follow_waypoints_to_paint, return_to_radius_sequence])
     
     def check_for_paint_detected(blackboard: py_trees.blackboard.Blackboard):
         return blackboard.paint.found
@@ -167,7 +185,7 @@ def create_root() -> py_trees.behaviour.Behaviour:
     
     inspect_and_go_next_waypoint = py_trees.composites.Selector(
         name="Inspect And Go To Next Waypoint",
-        memory=False
+        memory=True #TODO: check
     )
     inspect_and_go_next_waypoint.add_children([paint_detected, follow_waypoints_around_tower])
     

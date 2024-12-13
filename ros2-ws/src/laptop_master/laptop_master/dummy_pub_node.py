@@ -24,7 +24,7 @@ class DummyPubNode(Node):
         )
 
         #paint locations in ROS2 frame as defined in the PX4 autopilot tower model file
-        self.paint_locations = [Point(x = -9.525, y = 10.0, z = 1.0), Point(x = -9.525, y = 10.0, z = 2.0), Point(x = 10.0, y = 10.475, z = 6.0), Point(x = 10.0, y = -9.525, z = 9.0)]
+        self.paint_locations = [Point(x = 5.0, y = 4.5, z = 2.0), Point(x = 5.5, y = 5.0, z = 3.0)] #, Point(x = 10.0, y = 10.475, z = 6.0), Point(x = 10.0, y = 9.525, z = 9.0)]
         
         # stores local position in PX4 frame
         self.drone_posn = VehicleLocalPosition()
@@ -38,7 +38,7 @@ class DummyPubNode(Node):
         
         self.perception_pub = self.create_publisher(PerceptionStuff, 'realsense/out/perception_stuff', 10)
         
-        self.timer = self.create_timer(0.2, self.timer_callback) # 5 Hz
+        self.timer = self.create_timer(0.1, self.timer_callback) # 5 Hz
         
         self.i = 0.0
     
@@ -47,7 +47,7 @@ class DummyPubNode(Node):
 
         perception_msg.detected_tower = True
 
-        perception_msg.tower_position = Pose(position = Point(x = 10.0, y = 10.0, z = 10.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
+        perception_msg.tower_position = Pose(position = Point(x = 5.0, y = 5.0, z = 5.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
 
         perception_msg.detected_dirty_patch = True
 
@@ -66,23 +66,32 @@ class DummyPubNode(Node):
     def is_within_radius(self, point_a, point_b, radius):
         return np.linalg.norm(np.array([point_a.x, point_a.y, point_a.z]) - np.array([point_b.x, point_b.y, point_b.z])) <= radius
 
+    def is_within_radius_xy(self, point_a, point_b, radius):
+        return np.linalg.norm(np.array([point_a.x, point_a.y]) - np.array([point_b.x, point_b.y])) <= radius
+
     def timer_callback(self):
 
         #TODO - If self.drone_pose is close enough to a paint blob in self.paint_locations, then set relevant fields in Perception msg
         # (i think a good starting radius to test is 1.8 meters - we can change it later)
-        drone_pos = self.update_vehicle_local_pose()
+        drone_pos = self.drone_pose
+        lowest_r = float('inf')
         if drone_pos:
-           for paint_blob in self.paint_locations:
-                if self.is_within_radius(drone_pos.position, paint_blob, 2.0):
-                    perception_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z) 
-                    
+            for paint_blob in self.paint_locations:
+                diff = np.array([drone_pos.position.x, drone_pos.position.y, drone_pos.position.z]) - np.array([paint_blob.x, paint_blob.y, paint_blob.z])
+                r = np.linalg.norm(diff)
+                # self.get_logger().info(f"{diff}, {r}")
+                lowest_r = min(lowest_r, r) 
+                if self.is_within_radius(drone_pos.position, paint_blob, 1.8) and self.is_within_radius_xy(drone_pos.position, paint_blob, 1.75):
+                    perception_msg = self.create_perception_msg(paint_blob.x, paint_blob.y, paint_blob.z)
                     self.perception_pub.publish(perception_msg)
-                    self.get_logger().info(f"Published paint blob: {perception_msg}")
+                    # self.get_logger().info(f"Published paint blob: {perception_msg}\n")
                     return
+        
+        # self.get_logger().info(f"Lowest radius: {lowest_r}")
 
         perception_msg = PerceptionStuff()
         perception_msg.detected_tower = True
-        perception_msg.tower_position = Pose(position = Point(x = 10.0, y = 10.0, z = 10.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
+        perception_msg.tower_position = Pose(position = Point(x = 5.0, y = 5.0, z = 5.0), orientation = Quaternion(x = 0.0, y = 0.0, z = 0.0, w = 1.0))
         self.perception_pub.publish(perception_msg)
     
     def vehicle_local_position_callback(self, vehicle_local_position):
@@ -111,7 +120,11 @@ class DummyPubNode(Node):
             px4_drone_pose.orientation.z = float(self.drone_orientation.q[3])
 
             ros2_drone_pose = rpi_master_utils.px4_to_ros_world_frame_transform(px4_drone_pose)
+
+            self.drone_pose = ros2_drone_pose
             return ros2_drone_pose
+        
+        self.get_logger().info(f"Etiehr drone posn or drone orientation invalid. Not updating vehicle local pose")
 
 def main(args = None):
     # Initialize node

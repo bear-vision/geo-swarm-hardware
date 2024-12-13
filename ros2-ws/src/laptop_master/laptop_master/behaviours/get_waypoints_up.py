@@ -62,6 +62,7 @@ class GetWaypointsUp(py_trees.behaviour.Behaviour):
                 request.current_pose.orientation.w = float(or_w)
 
                 request.height_diff = self.height_diff
+                request.num_waypoints = 1
             else:
                 self.logger.error("Invalid drone x,y,z current pose.")
         except KeyError as e:
