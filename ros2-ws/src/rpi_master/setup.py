@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rpi_master_node = rpi_master.rpi_master_node:main'
+            'rpi_master_node = rpi_master.rpi_master_node:main',
+            'rpi_test_node = rpi_master.rpi_test_node:main'
         ],
     },
 )

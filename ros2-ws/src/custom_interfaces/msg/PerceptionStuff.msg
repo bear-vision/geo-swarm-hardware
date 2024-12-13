@@ -6,4 +6,4 @@ bool detected_dirty_patch # True if at least one dirty patch at the current leve
 int32 num_dirty_patches
 geometry_msgs/PoseArray dirty_patches # on the current level
 float32[] dirty_patches_radii
-
+bool detected_tower
