@@ -36,7 +36,7 @@ class OffboardControl(Node):
         self.offboard_setpoint_counter = 0
         self.vehicle_local_position = VehicleLocalPosition()
         self.vehicle_status = VehicleStatus()
-        self.takeoff_height = -0.5
+        self.takeoff_height = -0.6
 
         self.state = 0
 
@@ -94,7 +94,7 @@ class OffboardControl(Node):
         """Publish the trajectory setpoint."""
         msg = TrajectorySetpoint()
         msg.position = [x, y, z]
-        msg.yaw = 1.57079  # (90 degree)
+        msg.yaw = 0.0  # (90 degree)
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.trajectory_setpoint_publisher.publish(msg)
         self.get_logger().info(f"Publishing position setpoints {[x, y, z]}")
@@ -120,25 +120,150 @@ class OffboardControl(Node):
 
     def timer_callback(self) -> None:
         """Callback function for the timer."""
-            
+        
+        curr_x = 0.54
+        curr_y = -0.27
 
         if self.offboard_setpoint_counter > 10 and self.vehicle_status.nav_state != VehicleStatus.NAVIGATION_STATE_OFFBOARD:
             self.engage_offboard_mode()
             self.arm()
             
+
+        curr_x1 = curr_x + 1.0
+        curr_y1 = curr_y + 1.0
+
+        curr_x2 = curr_x + 1.2
+        curr_y2 = curr_y + 1.2
+
+        curr_x3 = curr_x + 2.0
+        curr_y3 = curr_y + 1.0
+
+        curr_x4 = curr_x + 2.4
+        curr_y4 = curr_y
+
+        curr_x5 = curr_x + 2.0
+        curr_y5 = curr_y - 1.0
+
+        curr_x6 = curr_x + 1.2
+        curr_y6 = curr_y - 1.2
+
+        curr_x7 = curr_x + 1.0
+        curr_y7 = curr_y - 1.0
+
+        curr_x8 = curr_x
+        curr_y8 = curr_y
+
         if self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
             if self.state == 0:
-                self.publish_position_setpoint(1.85, 0.0, self.takeoff_height)
+                self.publish_position_setpoint(curr_x,curr_y, self.takeoff_height)
 
-                if self.vehicle_local_position.z <= self.takeoff_height:
+                if self.vehicle_local_position.z <= self.takeoff_height+0.1:
                     self.get_logger().info("Takeoff successful")
                     self.state = 1
+            
+            elif self.state == 1:
+                self.publish_position_setpoint(curr_x1, curr_y1, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x1, curr_y1])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 2
 
-            # elif self.state == 1:
-            #     self.publish_position_setpoint(2.0, 0.0, self.takeoff_height)
-            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([2.0, 0.0])) <= 0.3:
+            elif self.state == 2:
+                self.publish_position_setpoint(curr_x2, curr_y2, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x2, curr_y2])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 3
+
+            elif self.state == 3:
+                self.publish_position_setpoint(curr_x3, curr_y3, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x3, curr_y3])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 4
+
+            elif self.state == 4:
+                self.publish_position_setpoint(curr_x4, curr_y4, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x4, curr_y4])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 5
+            
+            elif self.state == 5:
+                self.publish_position_setpoint(curr_x5, curr_y5, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x5, curr_y5])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 6
+
+            elif self.state == 6:
+                self.publish_position_setpoint(curr_x6, curr_y6, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x6, curr_y6])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 7
+
+            elif self.state == 7:
+                self.publish_position_setpoint(curr_x7, curr_y7, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x7, curr_y7])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 8
+            
+            elif self.state == 8:
+                self.publish_position_setpoint(curr_x8, curr_y8, self.takeoff_height)
+                if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x8, curr_y8])) <= 0.4:
+                    self.get_logger().info("Reached target position. Transitioning to land")
+                    self.state = 9
+
+            if self.state == 9:
+                self.publish_position_setpoint(curr_x,curr_y, self.takeoff_height-0.5)
+
+                if self.vehicle_local_position.z <= self.takeoff_height-0.5+0.1:
+                    self.get_logger().info("Takeoff successful")
+                    self.state = 10
+            
+            # elif self.state == 10:
+            #     self.publish_position_setpoint(curr_x1, curr_y1, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x1, curr_y1])) <= 0.4:
             #         self.get_logger().info("Reached target position. Transitioning to land")
-            #         self.state = 2
+            #         self.state = 11
+
+            # elif self.state == 11:
+            #     self.publish_position_setpoint(curr_x2, curr_y2, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x2, curr_y2])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 12
+
+            # elif self.state == 12:
+            #     self.publish_position_setpoint(curr_x3, curr_y3, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x3, curr_y3])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 13
+
+            # elif self.state == 13:
+            #     self.publish_position_setpoint(curr_x4, curr_y4, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x4, curr_y4])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 14
+            
+            # elif self.state == 14:
+            #     self.publish_position_setpoint(curr_x5, curr_y5, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x5, curr_y5])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 15
+
+            # elif self.state == 15:
+            #     self.publish_position_setpoint(curr_x6, curr_y6, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x6, curr_y6])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 16
+
+            # elif self.state == 16:
+            #     self.publish_position_setpoint(curr_x7, curr_y7, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x7, curr_y7])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 17
+            
+            # elif self.state == 17:
+            #     self.publish_position_setpoint(curr_x8, curr_y8, self.takeoff_height)
+            #     if np.linalg.norm(np.array([self.vehicle_local_position.x, self.vehicle_local_position.y]) - np.array([curr_x8, curr_y8])) <= 0.4:
+            #         self.get_logger().info("Reached target position. Transitioning to land")
+            #         self.state = 18
+
             else:
                 self.land()
                 exit(0)
